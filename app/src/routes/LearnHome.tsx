@@ -2,9 +2,8 @@
 // practice work straight after sign-in. A textbook class is optional extra.
 import { Link } from "react-router";
 import { InstallPrompt } from "../components/InstallPrompt";
-import { Button, RowLink, Screen, Section, Spinner } from "../components/ui";
+import { RowLink, Screen, Section, Spinner } from "../components/ui";
 import { myClasses } from "../lib/data";
-import { supabase } from "../lib/supabase";
 import { useAsync } from "../lib/useAsync";
 
 function BigLink({ to, title, detail, arabic, primary }: { to: string; title: string; detail: string; arabic: string; primary?: boolean }) {
@@ -67,9 +66,11 @@ export function LearnHome() {
         )}
       </Section>
 
-      <Button variant="ghost" className="mt-6 w-full text-muted" onClick={() => supabase.auth.signOut()}>
-        Sign out
-      </Button>
+      <Section title="Account">
+        <RowLink to="/account">
+          <span className="font-medium">Password and sign out</span>
+        </RowLink>
+      </Section>
     </Screen>
   );
 }

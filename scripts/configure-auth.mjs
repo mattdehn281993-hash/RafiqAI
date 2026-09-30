@@ -1,4 +1,6 @@
-// Sign-in settings: email code (and link), valid 10 minutes, and the app's address.
+// Sign-in settings. Main method: email + password, no email sent (so the free
+// plan's 2-emails-per-hour limit never blocks signing in) and sessions that last
+// until sign-out. Backup: an email code/link, valid 10 minutes.
 //
 //   npm run auth:config                        local development (http://localhost:5173)
 //   npm run auth:config -- https://rafiq.app   production address (localhost kept for development)
@@ -17,6 +19,13 @@ const settings = {
   uri_allow_list: allow,
   mailer_otp_length: 6,
   mailer_otp_exp: 600,
+  // Accounts are usable straight away without a confirmation email. Classes stay
+  // invite-only (invite codes), so this only opens the free foundations.
+  mailer_autoconfirm: true,
+  password_min_length: 8,
+  // Stay signed in until signing out (no forced time-out, no inactivity time-out).
+  sessions_timebox: 0,
+  sessions_inactivity_timeout: 0,
 };
 
 const smtp = env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS;

@@ -9,8 +9,11 @@ function RequireSignIn() {
   const { session, loading } = useAuth();
   if (loading) return <Spinner />;
   if (!session) {
+    // Come back to where you were after signing in, except from Account (that's
+    // where you sign out, so the next sign-in should start at Home).
     const next = location.pathname + location.search;
-    return <Navigate to={`/signin${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`} replace />;
+    const keep = next !== "/" && !location.pathname.startsWith("/account");
+    return <Navigate to={`/signin${keep ? `?next=${encodeURIComponent(next)}` : ""}`} replace />;
   }
   return <Outlet />;
 }
@@ -30,6 +33,7 @@ export const router = createBrowserRouter([
       { path: "/learn/talk/:topicKey", lazy: () => import("./routes/Talk").then((m) => ({ Component: m.TalkTopic })) },
       { path: "/learn/practice", lazy: () => import("./routes/PracticeHome").then((m) => ({ Component: m.PracticeHome })) },
       { path: "/learn/words", lazy: () => import("./routes/Words").then((m) => ({ Component: m.Words })) },
+      { path: "/account", lazy: () => import("./routes/Account").then((m) => ({ Component: m.Account })) },
       { path: "/join", lazy: () => import("./routes/Join").then((m) => ({ Component: m.Join })) },
       { path: "/setup", lazy: () => import("./routes/Setup").then((m) => ({ Component: m.Setup })) },
       { path: "/class/:classId/lessons", lazy: () => import("./routes/Lessons").then((m) => ({ Component: m.Lessons })) },

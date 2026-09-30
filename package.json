@@ -21,7 +21,9 @@
     "auth:config": "node --env-file=.env scripts/configure-auth.mjs",
     "ui:screens": "node --env-file=.env scripts/ui-screens.ts",
     "app:deploy": "node --env-file=.env scripts/deploy-app.mjs",
-    "audio:builtin": "node --env-file=.env scripts/pregen-builtin-audio.ts"
+    "audio:builtin": "node --env-file=.env scripts/pregen-builtin-audio.ts",
+    "auth:check": "node --env-file=.env scripts/auth-check.ts",
+    "account:set-password": "node --env-file=.env scripts/set-password.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

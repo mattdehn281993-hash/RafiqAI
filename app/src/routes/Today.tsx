@@ -199,9 +199,11 @@ export function Today() {
         </Section>
       )}
 
-      <button className="mt-8 min-h-11 w-full text-sm text-muted" onClick={() => supabase.auth.signOut()}>
-        Sign out
-      </button>
+      <Section title="Account">
+        <RowLink to="/account">
+          <span className="font-medium">Password and sign out</span>
+        </RowLink>
+      </Section>
     </Screen>
   );
 }
