@@ -101,6 +101,23 @@ try {
       console.log("✓ page shows the corrected card");
     }
 
+    // Letters tab: all 28 letters, tap one to open its name and sounds.
+    if (scheme === "light") {
+      await page.goto(`${APP}/class/${classId}/letters`);
+      await page.getByRole("button", { name: /Letter taaʾ/ }).waitFor({ timeout: 30000 });
+      const width = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (width > 390) errors.push(`letters is ${width}px wide`);
+      await page.screenshot({ path: path.join(out, "17-letters-light.png") });
+      await page.getByRole("button", { name: /Letter taaʾ/ }).click();
+      await page.getByText("Long sounds").waitFor({ timeout: 30000 });
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: path.join(out, "18-letter-sheet-light.png") });
+      const sounds = await page.locator('[role="dialog"] button[aria-label^="Play "]').count();
+      console.log(`${sounds === 7 ? "✓" : "✗"} letter sheet shows name + 6 sounds (${sounds})`);
+      if (sounds !== 7) errors.push("letter sheet incomplete");
+      await page.getByRole("button", { name: "Close" }).click();
+    }
+
     // Tonight's Preview → 2-minute quiz → score saved; Practice → progress saved; check-in.
     if (scheme === "light") {
       const answerAll = async (doneText: string) => {

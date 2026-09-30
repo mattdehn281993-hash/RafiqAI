@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArabicText } from "../components/ArabicText";
+import { LetterSounds } from "../components/LetterSounds";
 import { Button, ErrorNote, RowLink, Screen, Section, Spinner } from "../components/ui";
 import { playCard, prepareAudio } from "../lib/audio";
+import { letterSet } from "../lib/builtin";
 import { getClass, lessonsOf, nextLesson, pagesOf } from "../lib/data";
 import { supabase } from "../lib/supabase";
 import type { Card } from "../lib/types";
@@ -23,6 +25,8 @@ export function Today() {
       classroomInstructions(cls.book_id),
       cls.role === "editor" ? openReportCount(cls.book_id) : Promise.resolve(0),
     ]);
+    const currentLesson = lessons.find((l) => l.id === cls.current_lesson_id);
+    const sounds = await letterSet(currentLesson?.focus).catch(() => null);
     const today = new Date().toISOString().slice(0, 10);
     const [runs, checkin] = await Promise.all([
       supabase.from("preview_runs").select("lesson_id, score, total, completed_at").order("completed_at", { ascending: false }).limit(20),
@@ -34,6 +38,7 @@ export function Today() {
       cls, lessons, units, pages, instructions, reports,
       previewRuns: (must(runs) as { lesson_id: string; score: number; total: number }[]),
       checkin: (checkin.data as { answer: string } | null)?.answer ?? null,
+      sounds,
     };
   }, [classId]);
 
@@ -45,7 +50,7 @@ export function Today() {
   if (loading && !data) return <Screen title="Today" classId={classId}><Spinner /></Screen>;
   if (error || !data) return <Screen title="Today" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
-  const { cls, lessons, units, pages, instructions, reports, previewRuns, checkin } = data;
+  const { cls, lessons, units, pages, instructions, reports, previewRuns, checkin, sounds } = data;
   const current = lessons.find((l) => l.id === cls.current_lesson_id) ?? lessons.find((l) => l.kind !== "front_matter");
   const teaching = lessons.filter((l) => l.kind !== "front_matter");
   const number = current ? teaching.indexOf(current) + 1 : 0;
@@ -90,6 +95,12 @@ export function Today() {
             </Link>
           )}
         </div>
+      )}
+
+      {sounds && (
+        <Section title={`Learn the letter: ${sounds.name.pronunciation}`} action={<Link to={`/class/${classId}/letters`} className="text-sm font-semibold text-accent">All letters</Link>}>
+          <LetterSounds set={sounds} compact />
+        </Section>
       )}
 
       {upNext && (

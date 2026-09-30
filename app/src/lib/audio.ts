@@ -44,3 +44,18 @@ export async function playCard(cardId: string, slow = false): Promise<void> {
 export function forgetAudio(cardId: string) {
   urls.delete(cardId);
 }
+
+/** Plays a card and resolves when it has finished (for "play all"). */
+export async function playCardToEnd(cardId: string, slow = false): Promise<void> {
+  if (!player) return;
+  await playCard(cardId, slow);
+  await new Promise<void>((resolve) => {
+    const done = () => {
+      player.removeEventListener("ended", done);
+      player.removeEventListener("pause", done);
+      resolve();
+    };
+    player.addEventListener("ended", done);
+    player.addEventListener("pause", done);
+  });
+}

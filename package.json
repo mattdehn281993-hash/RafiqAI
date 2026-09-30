@@ -20,7 +20,8 @@
     "smoke": "node --env-file=.env scripts/smoke-test.ts",
     "auth:config": "node --env-file=.env scripts/configure-auth.mjs",
     "ui:screens": "node --env-file=.env scripts/ui-screens.ts",
-    "app:deploy": "node --env-file=.env scripts/deploy-app.mjs"
+    "app:deploy": "node --env-file=.env scripts/deploy-app.mjs",
+    "audio:builtin": "node --env-file=.env scripts/pregen-builtin-audio.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
