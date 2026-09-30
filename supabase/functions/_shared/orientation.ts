@@ -21,13 +21,13 @@ Which one shows the printed text upright, so that Arabic lines run horizontally,
 Judge by the printed text of the main page: page headers and page numbers are good clues. Ignore handwriting and anything at the edges.`;
 
 /**
- * `candidates[i]` is the photo rotated clockwise by ROTATIONS[i], each small
+ * `candidates[i]` is the photo rotated clockwise by ROTATIONS[i] as base64 JPEG, each small
  * (about 700px on the long edge). Returns the clockwise rotation to apply.
  */
-export async function detectRotation(client: Anthropic, candidates: Buffer[], model = "claude-opus-5"): Promise<Degrees> {
+export async function detectRotation(client: Anthropic, candidates: string[], model = "claude-opus-5"): Promise<Degrees> {
   const content: Anthropic.ContentBlockParam[] = candidates.flatMap((jpeg, i) => [
     { type: "text" as const, text: `Image ${LABELS[i]}:` },
-    { type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: jpeg.toString("base64") } },
+    { type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: jpeg } },
   ]);
   content.push({ type: "text", text: PROMPT });
 

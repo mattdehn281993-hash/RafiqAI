@@ -1,5 +1,5 @@
 // What the audio spike voices. Pronunciations follow the key in explain-page-prompt.ts.
-import { LETTERS, shortVowelSyllables } from "../../shared/sounds.ts";
+import { LETTERS, shortVowelSyllables } from "../../supabase/functions/_shared/sounds.ts";
 
 export type AudioItem = { id: string; group: string; text: string; pron: string; english: string };
 

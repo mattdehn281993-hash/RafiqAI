@@ -1,8 +1,8 @@
 // Builds a self-contained HTML report for one spike run: each page photo next
 // to its cards, AI-added vowel marks shown lighter, and the Gate 1 checklist.
-import type { ExplainPageResult } from "../../shared/explain-page.ts";
-import type { PageItem } from "../../shared/card-schema.ts";
-import { diffMarks, printedOnly, skeleton, MARK_NAMES, type MarkDiff } from "../../shared/harakat.ts";
+import type { ExplainPageResult } from "../../supabase/functions/_shared/explain-page.ts";
+import type { PageItem } from "../../supabase/functions/_shared/card-schema.ts";
+import { diffMarks, printedOnly, skeleton, MARK_NAMES, type MarkDiff } from "../../supabase/functions/_shared/harakat.ts";
 
 export type PageRecord =
   | { name: string; source: string; image: string; width: number; height: number; rotation?: number; ok: true; result: ExplainPageResult }

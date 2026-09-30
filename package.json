@@ -7,7 +7,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test shared/*.test.ts",
+    "test": "node --test supabase/functions/_shared/*.test.ts",
     "spike:pages": "node --env-file-if-exists=.env spikes/page-reading/run.ts",
     "spike:voices": "node --env-file-if-exists=.env spikes/audio/voices.ts",
     "spike:audio": "node --env-file-if-exists=.env spikes/audio/run.ts",

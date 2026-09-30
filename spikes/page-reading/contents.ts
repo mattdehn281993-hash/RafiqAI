@@ -7,7 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readContents, type BookMap } from "../../shared/read-contents.ts";
+import { readContents, type BookMap } from "../../supabase/functions/_shared/read-contents.ts";
 import { prepareImage } from "./image.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +27,7 @@ const images = prepared.map((p, i) => ({ file: `photo-${i + 1}.jpg`, ...p }));
 await Promise.all(images.map((p) => fs.writeFile(path.join(runDir, p.file), p.buffer)));
 
 console.log("Reading contents…");
-const result = await readContents(client, prepared.map((p) => p.buffer));
+const result = await readContents(client, prepared.map((p) => p.buffer.toString("base64")));
 await fs.writeFile(path.join(runDir, "book-map.json"), JSON.stringify({ sources: files, ...result }, null, 2));
 
 const lessons = result.map.units.flatMap((u) => u.lessons);

@@ -133,6 +133,40 @@ await expect("editor sees the report", () => as(A, "select * from reports"), row
 await expect("outsider cannot report a card they can't see", () => as(C, "insert into reports (card_id, card_version, message) values ('00000000-0000-0000-0000-0000000000c1', 1, 'x')"), denied);
 await expect("outsider sees no reports", () => as(C, "select * from reports"), rows(0));
 
+// Save functions: service role only.
+const map = JSON.stringify({
+  book_title_ar: "سلسلة", level_ar: "التمهيدي",
+  units: [
+    { title_ar: null, lessons: [{ number_label: "", title_ar: "المقدمة", kind: "front_matter", page: 2 }] },
+    { title_ar: "الوحدة الأولى", letters: "ب - ت", lessons: [
+      { number_label: "Lesson 1", title_ar: "الباء", kind: "letter", focus: "ب", page: 8 },
+      { number_label: "Lesson 2", title_ar: "التاء", kind: "letter", focus: "ت", page: 14 },
+    ] },
+  ],
+}).replace(/'/g, "''");
+await expect("app cannot call create_class_from_book_map", () => as(C, `select create_class_from_book_map('${C}', 'x', '${map}'::jsonb)`), denied);
+await expect("app cannot call save_scanned_page", () => as(B, `select save_scanned_page('${B}', '${ids.book}', null, 'm', 'v', '{}'::jsonb)`), denied);
+
+const newClass = (await db.query(`select create_class_from_book_map('${C}', 'Evening class', '${map}'::jsonb) as id`)).rows[0].id;
+await expect("Book Map creates 3 lessons in order", () => as(C, "select title_ar from lessons order by position"), (r) => r && r.rows.map((x) => x.title_ar).join(",") === "المقدمة,الباء,التاء");
+await expect("creator becomes editor of the new class", () => as(C, `select role from memberships where class_id = '${newClass}'`), (r) => r && r.rows[0]?.role === "editor");
+await expect("class starts at the first real lesson", () => as(C, "select l.title_ar from classes c join lessons l on l.id = c.current_lesson_id"), (r) => r && r.rows[0]?.title_ar === "الباء");
+await expect("other classes' members can't see the new book", () => as(B, "select * from books"), rows(1));
+
+const page = JSON.stringify({
+  page_number: 9, page_kind: "letter_grid", page_summary: "s", image_quality: "good",
+  items: [
+    { order: 2, row: 1, column: 2, kind: "word", arabic_printed: "بنت", arabic_full: "بِنْت", tts_text: "بِنْتْ", pronunciation: "bint", english: "girl", sound_note: null, needs_checking: false, needs_checking_reason: null },
+    { order: 1, row: 1, column: 1, kind: "syllable", arabic_printed: "بِ", arabic_full: "بِ", tts_text: "بِ", pronunciation: "bi", english: "b with kasra", sound_note: null, needs_checking: true, needs_checking_reason: "faint" },
+  ],
+}).replace(/'/g, "''");
+const pageId = (await db.query(`select save_scanned_page('${A}', '${ids.book}', '${ids.lesson}', 'claude-opus-5', 'v3', '${page}'::jsonb) as id`)).rows[0].id;
+await expect("saved page cards are in reading order", () => as(B, `select c.english from page_cards pc join current_cards c on c.id = pc.card_id where pc.page_id = '${pageId}' order by pc.position`), (r) => r && r.rows.map((x) => x.english).join(",") === "b with kasra,girl");
+await expect("needs-checking flag is kept", () => as(B, `select count(*)::int n from current_cards where needs_checking`), count(1));
+await expect("same page number can't be saved twice", () => db.query(`select save_scanned_page('${A}', '${ids.book}', null, 'm', 'v', '${page}'::jsonb)`), (r, e) => !!e && /duplicate|unique/i.test(e.message));
+const otherLesson = (await db.query("select id from lessons where title_ar = 'التاء'")).rows[0].id;
+await expect("lesson from another book is rejected", () => db.query(`select save_scanned_page('${A}', '${ids.book}', '${otherLesson}', 'm', 'v', '{"page_number": 50, "items": []}'::jsonb)`), (r, e) => !!e && /does not belong/.test(e.message));
+
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");
 await expect("anonymous sees no books", () => db.query("select * from books"), rows(0));

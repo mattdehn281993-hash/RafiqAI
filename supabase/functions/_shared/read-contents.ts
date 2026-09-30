@@ -50,13 +50,13 @@ Never guess an unreadable page number or title: give your best reading and set \
 
 export async function readContents(
   client: Anthropic,
-  images: Buffer[],
+  images: string[], // base64 JPEGs, upright, in page order
   opts: { effort?: "low" | "medium" | "high" | "xhigh" | "max"; model?: string } = {},
 ) {
   const started = Date.now();
   const content: Anthropic.Beta.BetaContentBlockParam[] = images.flatMap((jpeg, i) => [
     { type: "text" as const, text: `Photo ${i + 1} of ${images.length}:` },
-    { type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: jpeg.toString("base64") } },
+    { type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: jpeg } },
   ]);
   content.push({ type: "text", text: "Build the lesson map from these photos." });
 

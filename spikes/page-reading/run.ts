@@ -10,7 +10,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { explainPage, EXPLAIN_PAGE_MODEL, ExplainPageError, type Effort } from "../../shared/explain-page.ts";
+import { explainPage, EXPLAIN_PAGE_MODEL, ExplainPageError, type Effort } from "../../supabase/functions/_shared/explain-page.ts";
 import { prepareImage } from "./image.ts";
 import { buildReport, type PageRecord } from "./report.ts";
 

@@ -1,7 +1,7 @@
 // Photo preparation shared by the page and contents spikes.
 import type Anthropic from "@anthropic-ai/sdk";
 import sharp from "sharp";
-import { detectRotation, ROTATIONS, type Degrees } from "../../shared/orientation.ts";
+import { detectRotation, ROTATIONS, type Degrees } from "../../supabase/functions/_shared/orientation.ts";
 
 const MAX_EDGE = 2576; // Claude Opus 5's full-resolution limit; larger images get downscaled anyway
 
@@ -12,7 +12,7 @@ export async function prepareImage(client: Anthropic, file: string, detect = tru
   let rotation: Degrees = 0;
   if (detect) {
     const small = await sharp(oriented).resize({ width: 700, height: 700, fit: "inside" }).jpeg({ quality: 80 }).toBuffer();
-    const candidates = await Promise.all(ROTATIONS.map((d) => sharp(small).rotate(d).jpeg({ quality: 80 }).toBuffer()));
+    const candidates = await Promise.all(ROTATIONS.map(async (d) => (await sharp(small).rotate(d).jpeg({ quality: 80 }).toBuffer()).toString("base64")));
     rotation = await detectRotation(client, candidates);
   }
   const { data, info } = await sharp(oriented)
