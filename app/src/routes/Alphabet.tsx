@@ -1,7 +1,7 @@
 // Letters: all 28 letters in the book's order, available from day one. Tap a
 // letter to hear its name and sounds. Letters the class has reached are marked.
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { LETTERS, letterKeyForFocus } from "@shared/sounds.ts";
 import { Sheet } from "../components/CardEditor";
 import { LetterSounds } from "../components/LetterSounds";
@@ -36,15 +36,16 @@ export function Alphabet() {
     }
   }
 
-  if (loading && !data) return <Screen title="Letters" classId={classId}><Spinner /></Screen>;
-  if (error || !data) return <Screen title="Letters" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
+  if (loading && !data) return <Screen title="Learn" classId={classId}><Spinner /></Screen>;
+  if (error || !data) return <Screen title="Learn" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
   const openLetterInfo = open ? LETTERS.find((l) => l.key === open.key) : null;
   const openLesson = open ? data.lessonOf.get(open.key) : null;
 
   return (
-    <Screen title="Letters" subtitle="The 28 letters in your book's order · tap to hear" classId={classId}>
-      <ol className="grid grid-cols-4 gap-2" dir="rtl">
+    <Screen title="Learn" subtitle="The 28 letters in your book's order · tap to hear" classId={classId}>
+      <LearnSwitch classId={classId} active="letters" />
+      <ol className="mt-3 grid grid-cols-4 gap-2" dir="rtl">
         {LETTERS.map((l, i) => {
           const isToday = l.key === data.todayKey;
           const reached = data.reached.has(l.key);
@@ -90,5 +91,25 @@ export function Alphabet() {
         </Sheet>
       )}
     </Screen>
+  );
+}
+
+/** Segmented switch between the two built-in sections. */
+export function LearnSwitch({ classId, active }: { classId: string; active: "letters" | "talk" }) {
+  const item = (key: "letters" | "talk", label: string, to: string) => (
+    <Link
+      to={to}
+      replace
+      aria-current={active === key ? "page" : undefined}
+      className={`flex min-h-11 flex-1 items-center justify-center rounded-xl text-sm font-semibold ${active === key ? "bg-surface text-accent shadow-sm" : "text-muted"}`}
+    >
+      {label}
+    </Link>
+  );
+  return (
+    <div className="flex gap-1 rounded-2xl bg-soft p-1">
+      {item("letters", "Letters", `/class/${classId}/letters`)}
+      {item("talk", "Conversation", `/class/${classId}/talk`)}
+    </div>
   );
 }

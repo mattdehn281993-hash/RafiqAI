@@ -1,5 +1,5 @@
-// The built-in course cards (Level 1: letter names, short and long sounds),
-// looked up by the letter a book lesson teaches.
+// The built-in course cards (Level 1: letter names, short and long sounds;
+// Level 4: everyday conversation), looked up by their built-in key.
 import { letterKeyForFocus } from "@shared/sounds.ts";
 import { supabase } from "./supabase";
 import type { Card } from "./types";
@@ -11,8 +11,8 @@ let cache: Promise<Map<string, Card>> | null = null;
 export function builtinCards(): Promise<Map<string, Card>> {
   cache ??= (async () => {
     const [keys, cards] = await Promise.all([
-      supabase.from("cards").select("id, builtin_key").eq("level", 1),
-      supabase.from("current_cards").select("*").eq("level", 1),
+      supabase.from("cards").select("id, builtin_key").not("builtin_key", "is", null),
+      supabase.from("current_cards").select("*").is("book_id", null),
     ]);
     const byId = new Map((must(cards) as Card[]).map((c) => [c.id, c]));
     const out = new Map<string, Card>();

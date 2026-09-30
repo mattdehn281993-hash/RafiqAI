@@ -74,6 +74,9 @@ try {
       // Horizontal overflow is the classic phone-layout bug: check every screen.
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
       if (width > 390) errors.push(`${name} is ${width}px wide (wider than the phone)`);
+      // The tab bar should split the width evenly (catches broken tab styling).
+      const tabWidths = await page.locator("nav a").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+      if (tabWidths.length && Math.min(...tabWidths) < 60) errors.push(`${name}: tab bar squashed (${tabWidths.map(Math.round).join(",")})`);
       await page.screenshot({ path: path.join(out, `${name}-${scheme}.png`), fullPage: !!full });
     }
     // Editor correction flow, through the UI: report → Fix card → save → page shows the new text.
@@ -105,6 +108,7 @@ try {
     if (scheme === "light") {
       await page.goto(`${APP}/class/${classId}/letters`);
       await page.getByRole("button", { name: /Letter taaʾ/ }).waitFor({ timeout: 30000 });
+      if (!(await page.getByRole("link", { name: "Learn" }).getAttribute("aria-current"))) errors.push("Learn tab not active on letters");
       const width = await page.evaluate(() => document.documentElement.scrollWidth);
       if (width > 390) errors.push(`letters is ${width}px wide`);
       await page.screenshot({ path: path.join(out, "17-letters-light.png") });
@@ -116,6 +120,30 @@ try {
       console.log(`${sounds === 7 ? "✓" : "✗"} letter sheet shows name + 6 sounds (${sounds})`);
       if (sounds !== 7) errors.push("letter sheet incomplete");
       await page.getByRole("button", { name: "Close" }).click();
+    }
+
+    // Conversation: topic list → Greetings phrases → dialogue role-play.
+    if (scheme === "light") {
+      await page.goto(`${APP}/class/${classId}/talk`);
+      await page.getByText("First conversation").waitFor({ timeout: 30000 });
+      await page.screenshot({ path: path.join(out, "19-talk-light.png") });
+      await page.getByText("Greetings", { exact: true }).click();
+      await page.getByText("Good morning", { exact: true }).waitFor({ timeout: 30000 });
+      await page.waitForTimeout(800);
+      const phrases = await page.locator("article").count();
+      console.log(`${phrases === 8 ? "✓" : "✗"} Greetings shows 8 phrases (${phrases})`);
+      if (phrases !== 8) errors.push("greetings incomplete");
+      await page.screenshot({ path: path.join(out, "20-talk-greetings-light.png") });
+      await page.goto(`${APP}/class/${classId}/talk/first-conversation`);
+      await page.getByRole("button", { name: "Role-play: I'm B" }).click();
+      const turns = await page.getByText("Your turn: say it, then tap").count();
+      console.log(`${turns >= 5 ? "✓" : "✗"} role-play hides B's lines (${turns})`);
+      if (turns < 5) errors.push("role-play failed");
+      await page.getByText("Your turn: say it, then tap").first().click();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(out, "21-talk-dialogue-light.png") });
+      const width = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (width > 390) errors.push(`dialogue is ${width}px wide`);
     }
 
     // Tonight's Preview → 2-minute quiz → score saved; Practice → progress saved; check-in.

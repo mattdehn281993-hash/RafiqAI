@@ -127,6 +127,24 @@ export function Today() {
         </Link>
       )}
 
+      <Link
+        to={`/class/${classId}/talk`}
+        className="mt-3 flex min-h-16 items-center gap-3 rounded-3xl border border-border bg-surface p-4 active:bg-soft"
+      >
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent" aria-hidden>
+          <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round">
+            <path d="M4 5h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-4-3h-3" />
+          </svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-bold">Conversation</span>
+          <span className="block truncate text-sm text-muted">Greetings, how are you, your name, where you're from</span>
+        </span>
+        <span className="font-arabic text-xl text-accent" lang="ar" dir="rtl">
+          السَّلَامُ
+        </span>
+      </Link>
+
       <CheckIn lessonId={cls.current_lesson_id} answer={checkin} />
 
       <Section title={`Pages saved for this lesson (${lessonPages.length})`}>

@@ -90,7 +90,9 @@ Limits to watch: free-plan functions stop at 150 s. Lesson pages take 20–75 s;
 
 - [x] Tonight's Preview + 2-minute quiz (next lesson's letter name, short and long sounds from built-in cards, plus words from saved pages; scores in `preview_runs`)
 - [x] Learn cards Level 1: 196 built-in cards (28 letter names, 84 short and 84 long vowel sounds), in book order
-- [ ] Learn cards levels 2–4 (first words, classroom Arabic, everyday phrases), human-reviewed
+- [x] Learn tab: the full alphabet with every letter's name and sounds from day one (all 196 clips pre-generated)
+- [x] Conversation (built-in Level 4, 27 phrases): greetings, how are you, name, where you're from, age, and a first conversation to play or role-play. **Drafted by Rafiq: needs a teacher or native speaker to check**
+- [ ] Learn cards levels 2–3 (first words, classroom Arabic), human-reviewed
 - [x] Practice: hear-and-pick (look-alike wrong answers: same letter other vowel, ب/ت/ث), see-it-say-it flashcards, This lesson, My Words
 - [x] Review queue with spaced repetition (Today's review: due cards + new saved words; right answers wait 1→30 days, misses return in 10 min)
 - [x] After-class check-in (yes / partly / no) on Today

@@ -32,6 +32,8 @@ export const router = createBrowserRouter([
       { path: "/class/:classId/page/:pageId", lazy: () => import("./routes/PageView").then((m) => ({ Component: m.PageView })) },
       { path: "/class/:classId/invite", lazy: () => import("./routes/Invite").then((m) => ({ Component: m.Invite })) },
       { path: "/class/:classId/letters", lazy: () => import("./routes/Alphabet").then((m) => ({ Component: m.Alphabet })) },
+      { path: "/class/:classId/talk", lazy: () => import("./routes/Talk").then((m) => ({ Component: m.TalkList })) },
+      { path: "/class/:classId/talk/:topicKey", lazy: () => import("./routes/Talk").then((m) => ({ Component: m.TalkTopic })) },
       { path: "/class/:classId/preview", lazy: () => import("./routes/Preview").then((m) => ({ Component: m.Preview })) },
       { path: "/class/:classId/practice", lazy: () => import("./routes/PracticeHome").then((m) => ({ Component: m.PracticeHome })) },
       { path: "/class/:classId/reports", lazy: () => import("./routes/Reports").then((m) => ({ Component: m.Reports })) },

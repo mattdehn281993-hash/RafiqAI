@@ -196,6 +196,11 @@ await expect("student records a preview run", () => as(B, `insert into preview_r
 await expect("editor cannot see student's preview runs", () => as(A, "select * from preview_runs"), rows(0));
 await expect("outsider cannot log a preview for a lesson they can't see", () => as(C, `insert into preview_runs (lesson_id, score, total) values ('${ids.lesson}', 1, 1)`), denied);
 
+// Built-in conversation cards (Level 4).
+await expect("conversation cards seeded", () => db.query("select count(*)::int n from cards where builtin_key like 'conv-%' and level = 4"), (r) => r && r.rows[0].n >= 25);
+await expect("greeting card says the pause form", () => db.query("select tts_text, pronunciation from current_cards c join cards k using (id) where k.builtin_key = 'conv-morning'"), (r) => r && r.rows[0]?.tts_text === "صَبَاحُ الْخَيْرْ" && r.rows[0]?.pronunciation === "ṣa-BAA-ḥul khayr");
+await expect("students can read conversation cards", () => as(B, "select count(*)::int n from current_cards where level = 4"), (r) => r && r.rows[0].n >= 25);
+
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");
 await expect("anonymous sees no books", () => db.query("select * from books"), rows(0));

@@ -1,6 +1,6 @@
 // Small shared UI pieces. Mobile-first: 44px+ tap targets, thumb-reachable actions.
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 
 export function Button({
   variant = "primary",
@@ -62,14 +62,17 @@ const icons = {
   words: "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z",
 };
 
-function Tab({ to, label, icon, end }: { to: string; label: string; icon: keyof typeof icons; end?: boolean }) {
+function Tab({ to, label, icon, end, alsoActiveOn }: { to: string; label: string; icon: keyof typeof icons; end?: boolean; alsoActiveOn?: string }) {
+  const { pathname } = useLocation();
+  const also = alsoActiveOn ? pathname.startsWith(alsoActiveOn) : false;
   return (
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) =>
-        `flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${isActive ? "text-accent" : "text-muted"}`
-      }
+      className={({ isActive }) => {
+        const active = isActive || also;
+        return `flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active ? "text-accent" : "text-muted"}`;
+      }}
     >
       <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d={icons[icon]} />
@@ -139,7 +142,7 @@ export function Screen({
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <Tab to={`/class/${classId}`} label="Today" icon="today" end />
-          <Tab to={`/class/${classId}/letters`} label="Letters" icon="letters" />
+          <Tab to={`/class/${classId}/letters`} label="Learn" icon="letters" alsoActiveOn={`/class/${classId}/talk`} />
           <Tab to={`/class/${classId}/lessons`} label="Lessons" icon="lessons" />
           <Tab to={`/class/${classId}/practice`} label="Practice" icon="practice" />
           <Tab to={`/class/${classId}/words`} label="My Words" icon="words" />
