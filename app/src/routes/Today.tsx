@@ -16,12 +16,13 @@ export function Today() {
   const navigate = useNavigate();
   const { data, error, loading, reload } = useAsync(async () => {
     const cls = await getClass(classId);
-    const [{ lessons, units }, pages, instructions] = await Promise.all([
+    const [{ lessons, units }, pages, instructions, reports] = await Promise.all([
       lessonsOf(cls.book_id),
       pagesOf(cls.book_id),
       classroomInstructions(cls.book_id),
+      cls.role === "editor" ? openReportCount(cls.book_id) : Promise.resolve(0),
     ]);
-    return { cls, lessons, units, pages, instructions };
+    return { cls, lessons, units, pages, instructions, reports };
   }, [classId]);
 
   useEffect(() => rememberClass(classId), [classId]);
@@ -32,7 +33,7 @@ export function Today() {
   if (loading && !data) return <Screen title="Today" classId={classId}><Spinner /></Screen>;
   if (error || !data) return <Screen title="Today" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
-  const { cls, lessons, units, pages, instructions } = data;
+  const { cls, lessons, units, pages, instructions, reports } = data;
   const current = lessons.find((l) => l.id === cls.current_lesson_id) ?? lessons.find((l) => l.kind !== "front_matter");
   const teaching = lessons.filter((l) => l.kind !== "front_matter");
   const number = current ? teaching.indexOf(current) + 1 : 0;
@@ -115,9 +116,15 @@ export function Today() {
 
       {cls.role === "editor" && (
         <Section title="Class">
-          <RowLink to={`/class/${classId}/invite`}>
-            <span className="font-medium">Invite classmates</span>
-          </RowLink>
+          <div className="flex flex-col gap-2">
+            <RowLink to={`/class/${classId}/reports`}>
+              <span className="font-medium">Reports to review</span>
+              {reports > 0 && <span className="rounded-full bg-warn-bg px-2.5 py-0.5 text-sm font-bold text-warn">{reports}</span>}
+            </RowLink>
+            <RowLink to={`/class/${classId}/invite`}>
+              <span className="font-medium">Invite classmates</span>
+            </RowLink>
+          </div>
         </Section>
       )}
 
@@ -140,4 +147,9 @@ async function classroomInstructions(bookId: string): Promise<Card[]> {
     seen.add(key);
     return true;
   });
+}
+
+async function openReportCount(bookId: string): Promise<number> {
+  const { openReports } = await import("./Reports");
+  return (await openReports(bookId)).length;
 }

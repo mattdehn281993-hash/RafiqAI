@@ -39,3 +39,8 @@ export async function playCard(cardId: string, slow = false): Promise<void> {
   player.playbackRate = slow ? SLOW_RATE : 1;
   await player.play();
 }
+
+/** Drop a card's cached clip, e.g. after a correction changed what it says. */
+export function forgetAudio(cardId: string) {
+  urls.delete(cardId);
+}

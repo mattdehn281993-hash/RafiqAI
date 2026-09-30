@@ -167,6 +167,23 @@ await expect("same page number can't be saved twice", () => db.query(`select sav
 const otherLesson = (await db.query("select id from lessons where title_ar = 'التاء'")).rows[0].id;
 await expect("lesson from another book is rejected", () => db.query(`select save_scanned_page('${A}', '${ids.book}', '${otherLesson}', 'm', 'v', '{"page_number": 50, "items": []}'::jsonb)`), (r, e) => !!e && /does not belong/.test(e.message));
 
+// Corrections: editors make a new card version and resolve reports.
+const card1 = "00000000-0000-0000-0000-0000000000c1";
+const reportId = (await db.query("select id from reports limit 1")).rows[0].id;
+await expect("app cannot call correct_card", () => as(A, `select correct_card('${A}', '${card1}', '{}'::jsonb, 'x')`), denied);
+await expect("student cannot correct a card", () => db.query(`select correct_card('${B}', '${card1}', '{"english":"x"}'::jsonb, 'x')`), (r, e) => !!e && /Only editors/.test(e.message));
+await expect("editor of another book cannot correct it", () => db.query(`select correct_card('${C}', '${card1}', '{"english":"x"}'::jsonb, 'x')`), (r, e) => !!e && /Only editors/.test(e.message));
+await expect("editor correction makes version 2", () => db.query(`select correct_card('${A}', '${card1}', '{"english":"a book","needs_checking":false}'::jsonb, 'teacher said so', '${reportId}') as v`), (r) => r && r.rows[0].v === 2);
+await expect("students see the corrected card", () => as(B, `select english, current_version from current_cards where id = '${card1}'`), (r) => r && r.rows[0]?.english === "a book" && r.rows[0]?.current_version === 2);
+await expect("unchanged fields carry over", () => as(B, `select pronunciation from current_cards where id = '${card1}'`), (r) => r && r.rows[0]?.pronunciation === "ki-TAAB");
+await expect("old version kept as history", () => as(B, `select count(*)::int n from card_versions where card_id = '${card1}'`), count(2));
+await expect("the report is marked accepted", () => as(B, `select status from reports where id = '${reportId}'`), (r) => r && r.rows[0]?.status === "accepted");
+await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${B}', false); set role authenticated;
+  insert into reports (card_id, card_version, message) values ('${card1}', 2, 'still wrong'); reset role;`);
+const report2 = (await db.query("select id from reports where status = 'open'")).rows[0].id;
+await expect("student cannot dismiss a report", () => db.query(`select dismiss_report('${B}', '${report2}')`), (r, e) => !!e);
+await expect("editor dismisses a report", () => db.query(`select dismiss_report('${A}', '${report2}')`).then(() => db.query(`select status from reports where id = '${report2}'`)), (r) => r && r.rows[0]?.status === "rejected");
+
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");
 await expect("anonymous sees no books", () => db.query("select * from books"), rows(0));

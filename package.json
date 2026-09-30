@@ -19,7 +19,8 @@
     "functions:deploy": "node --env-file=.env scripts/deploy-functions.mjs",
     "smoke": "node --env-file=.env scripts/smoke-test.ts",
     "auth:config": "node --env-file=.env scripts/configure-auth.mjs",
-    "ui:screens": "node --env-file=.env scripts/ui-screens.ts"
+    "ui:screens": "node --env-file=.env scripts/ui-screens.ts",
+    "app:deploy": "node --env-file=.env scripts/deploy-app.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",

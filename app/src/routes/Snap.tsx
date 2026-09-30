@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import type { PageExtraction, PageItem } from "@shared/card-schema.ts";
 import { Button, ErrorNote, Screen } from "../components/ui";
 import { ArabicText } from "../components/ArabicText";
+import { CardFieldsForm } from "../components/CardEditor";
 import { getClass, lessonForPage, lessonsOf } from "../lib/data";
 import { makeUpright, type UprightPhoto } from "../lib/image";
 import { callFunction } from "../lib/supabase";
@@ -229,29 +230,9 @@ export function Snap() {
 
 function EditItem({ item, onDone, onRemove }: { item: PageItem; onDone: (item: PageItem) => void; onRemove: () => void }) {
   const [draft, setDraft] = useState(item);
-  const field = (key: "arabic_printed" | "arabic_full" | "tts_text" | "pronunciation" | "english", label: string, arabic = false) => (
-    <label className="block">
-      <span className="text-xs font-medium text-muted">{label}</span>
-      <input
-        dir={arabic ? "rtl" : "ltr"}
-        lang={arabic ? "ar" : "en"}
-        value={draft[key]}
-        onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
-        className={`mt-0.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3 ${arabic ? "font-arabic text-xl" : ""}`}
-      />
-    </label>
-  );
   return (
     <li className="flex flex-col gap-2 rounded-2xl border-2 border-accent bg-surface p-3">
-      {field("arabic_printed", "Arabic exactly as printed", true)}
-      {field("arabic_full", "Arabic with all vowel marks", true)}
-      {field("tts_text", "What the voice says", true)}
-      {field("pronunciation", "Easy pronunciation")}
-      {field("english", "English meaning")}
-      <label className="flex min-h-11 items-center gap-2">
-        <input type="checkbox" className="size-5" checked={draft.needs_checking} onChange={(e) => setDraft({ ...draft, needs_checking: e.target.checked })} />
-        <span className="text-sm">Needs checking</span>
-      </label>
+      <CardFieldsForm value={draft} onChange={(v) => setDraft({ ...draft, ...v })} />
       <div className="flex gap-2">
         <Button className="flex-1" onClick={() => onDone(draft)}>
           Done

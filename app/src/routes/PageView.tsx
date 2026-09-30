@@ -1,12 +1,13 @@
 // A saved page: every card in the page's own layout (rows, right to left).
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
+import { CorrectCardSheet } from "../components/CardEditor";
 import { CardTile } from "../components/CardTile";
 import { ErrorNote, Screen, Spinner } from "../components/ui";
-import { prepareAudio } from "../lib/audio";
-import { pageCards, rowsOf, savedCardIds, toggleSaved } from "../lib/data";
+import { forgetAudio, prepareAudio } from "../lib/audio";
+import { correctCard, getClass, pageCards, rowsOf, savedCardIds, toggleSaved } from "../lib/data";
 import { supabase } from "../lib/supabase";
-import type { PageRow } from "../lib/types";
+import type { PageRow, PlacedCard } from "../lib/types";
 import { must, useAsync } from "../lib/useAsync";
 
 /** Full width for single-item rows and long text; half width otherwise (page layout, right to left). */
@@ -19,11 +20,12 @@ export function PageView() {
     const lesson = page.lesson_id
       ? (must(await supabase.from("lessons").select("title_en, title_ar").eq("id", page.lesson_id).single()) as { title_en: string | null; title_ar: string })
       : null;
-    const [cards, saved] = await Promise.all([pageCards(pageId), savedCardIds()]);
-    return { page, lesson, cards, saved };
+    const [cards, saved, cls] = await Promise.all([pageCards(pageId), savedCardIds(), getClass(classId)]);
+    return { page, lesson, cards, saved, editor: cls.role === "editor" };
   }, [pageId]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<PlacedCard | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -70,12 +72,31 @@ export function PageView() {
           <div key={i} className="grid grid-cols-2 gap-2 [&>*]:min-w-0" dir="rtl">
             {row.map((c) => (
               <div key={c.id} dir="ltr" className={`flex min-w-0 ${wide(row, c) ? "col-span-2" : ""}`}>
-                <CardTile card={c} saved={saved.has(c.id)} onToggleSave={() => toggle(c.id)} compact={!wide(row, c)} />
+                <CardTile
+                  card={c}
+                  saved={saved.has(c.id)}
+                  onToggleSave={() => toggle(c.id)}
+                  compact={!wide(row, c)}
+                  onEdit={data.editor ? () => setEditing(c) : undefined}
+                />
               </div>
             ))}
           </div>
         ))}
       </div>
+
+      {editing && (
+        <CorrectCardSheet
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSave={async (changes, reason) => {
+            await correctCard(editing.id, changes, reason);
+            forgetAudio(editing.id);
+            setEditing(null);
+            reload();
+          }}
+        />
+      )}
     </Screen>
   );
 }

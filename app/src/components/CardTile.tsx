@@ -12,6 +12,7 @@ const ICON = {
   slow: "M4 12h4l3-7 4 14 3-7h2",
   save: "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z",
   report: "M5 21V4m0 0h11l-2 4 2 4H5",
+  edit: "M4 20h4L19 9l-4-4L4 16zM14 6l4 4",
 };
 
 export function CardTile({
@@ -21,6 +22,7 @@ export function CardTile({
   audio = true,
   size = "md",
   compact = false,
+  onEdit,
 }: {
   card: Card;
   saved?: boolean;
@@ -28,6 +30,8 @@ export function CardTile({
   audio?: boolean;
   size?: "md" | "lg";
   compact?: boolean;
+  /** Editors: correct the card instead of reporting it. */
+  onEdit?: () => void;
 }) {
   const [playing, setPlaying] = useState<"normal" | "slow" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,16 +88,26 @@ export function CardTile({
           <IconButton label={playing === "normal" ? "Playing" : "Play"} onClick={() => play(false)} path={ICON.play} active={playing === "normal"} />
           <IconButton label={playing === "slow" ? "Playing slow" : "Slow"} onClick={() => play(true)} path={ICON.slow} active={playing === "slow"} />
           {onToggleSave && <IconButton label={saved ? "Saved" : "Save"} onClick={onToggleSave} path={ICON.save} filled={saved} />}
-          <button className="ml-auto min-h-11 px-2 text-sm text-muted" onClick={() => setReporting(true)}>
-            Report
-          </button>
+          {onEdit ? (
+            <button className="ml-auto min-h-11 px-2 text-sm font-semibold text-accent" onClick={onEdit}>
+              Edit
+            </button>
+          ) : (
+            <button className="ml-auto min-h-11 px-2 text-sm text-muted" onClick={() => setReporting(true)}>
+              Report
+            </button>
+          )}
         </div>
       )}
       {audio && compact && (
         <div className="mt-auto flex items-center justify-between border-t border-border pt-1">
           <IconButton label={playing === "slow" ? "Playing slow" : "Play slow"} onClick={() => play(true)} path={ICON.slow} active={playing === "slow"} iconOnly />
           {onToggleSave && <IconButton label={saved ? "Saved" : "Save"} onClick={onToggleSave} path={ICON.save} filled={saved} iconOnly />}
-          <IconButton label="Report a mistake" onClick={() => setReporting(true)} path={ICON.report} iconOnly muted />
+          {onEdit ? (
+            <IconButton label="Edit card" onClick={onEdit} path={ICON.edit} iconOnly />
+          ) : (
+            <IconButton label="Report a mistake" onClick={() => setReporting(true)} path={ICON.report} iconOnly muted />
+          )}
         </div>
       )}
       {reporting && <ReportForm card={card} onClose={() => setReporting(false)} />}

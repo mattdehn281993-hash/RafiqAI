@@ -443,3 +443,8 @@ import_map = "./functions/deno.json"
 # Sign-in is checked in code (_edge/http.ts), which works with every Supabase key type.
 verify_jwt = false
 import_map = "./functions/deno.json"
+
+[functions.card-review]
+# Sign-in is checked in code (_edge/http.ts), which works with every Supabase key type.
+verify_jwt = false
+import_map = "./functions/deno.json"

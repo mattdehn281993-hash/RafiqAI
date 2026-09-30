@@ -76,6 +76,31 @@ try {
       if (width > 390) errors.push(`${name} is ${width}px wide (wider than the phone)`);
       await page.screenshot({ path: path.join(out, `${name}-${scheme}.png`), fullPage: !!full });
     }
+    // Editor correction flow, through the UI: report → Fix card → save → page shows the new text.
+    if (scheme === "light") {
+      const target = cardIds[1];
+      await admin.from("reports").insert({ card_id: target, card_version: 1, reporter: userId, message: "The teacher says this means “look carefully and notice”." });
+      await page.goto(`${APP}/class/${classId}/reports`);
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: path.join(out, "09-reports-light.png") });
+      await page.getByRole("button", { name: "Fix card" }).first().click();
+      const english = page.getByLabel("English meaning");
+      await english.fill("Look carefully and notice");
+      await page.getByLabel("Why (e.g. “teacher's meaning”)").fill("teacher's meaning");
+      await page.screenshot({ path: path.join(out, "10-correct-sheet-light.png") });
+      await page.getByRole("button", { name: "Save correction" }).click();
+      await page.getByText("No open reports").waitFor({ timeout: 20000 });
+      const { data: fixed } = await admin.from("current_cards").select("english, current_version").eq("id", target).single();
+      const { data: rep } = await admin.from("reports").select("status").eq("card_id", target).single();
+      const ok = fixed?.english === "Look carefully and notice" && fixed?.current_version === 2 && rep?.status === "accepted";
+      console.log(`${ok ? "✓" : "✗"} correction through the app: v${fixed?.current_version}, "${fixed?.english}", report ${rep?.status}`);
+      if (!ok) errors.push("correction flow failed");
+      await page.goto(`${APP}/class/${classId}/page/${pageId}`);
+      await page.getByText("Look carefully and notice").first().waitFor({ timeout: 15000 });
+      console.log("✓ page shows the corrected card");
+    }
+
     console.log(`${scheme}: ${errors.length ? errors.join(" | ") : "every screen fits the phone width, no console errors"}`);
     await context.close();
   }

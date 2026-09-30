@@ -1,5 +1,5 @@
 // Queries used by several screens. Row-level security decides what comes back.
-import { supabase } from "./supabase";
+import { callFunction, supabase } from "./supabase";
 import type { Card, ClassInfo, Lesson, PageRow, PlacedCard, Unit } from "./types";
 import { must } from "./useAsync";
 
@@ -85,4 +85,21 @@ export function rowsOf(cards: PlacedCard[]): PlacedCard[][] {
     rows.set(key, [...(rows.get(key) ?? []), c]);
   }
   return [...rows.entries()].sort(([a], [b]) => a - b).map(([, r]) => r.sort((a, b) => (a.col_index ?? 0) - (b.col_index ?? 0)));
+}
+
+export type CardChanges = Partial<Pick<Card, "arabic_printed" | "arabic_full" | "tts_text" | "pronunciation" | "english" | "sound_note" | "needs_checking" | "needs_checking_reason">>;
+
+/** Editors: save a correction as a new card version (optionally resolving a report). */
+export async function correctCard(cardId: string, changes: CardChanges, reason: string, reportId?: string) {
+  return callFunction<{ version: number }>("card-review", {
+    action: "correct",
+    card_id: cardId,
+    changes,
+    reason: reason.trim() || "correction",
+    report_id: reportId ?? null,
+  });
+}
+
+export async function dismissReport(reportId: string) {
+  return callFunction<{ ok: true }>("card-review", { action: "dismiss", report_id: reportId });
 }
