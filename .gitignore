@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Textbook photos and spike outputs stay on this machine (copyright + privacy)
+spikes/page-reading/pages/*
+!spikes/page-reading/pages/README.md
+spikes/*/out/

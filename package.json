@@ -1,0 +1,25 @@
+{
+  "name": "rafiq",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test shared/*.test.ts",
+    "spike:pages": "node --env-file-if-exists=.env spikes/page-reading/run.ts",
+    "spike:voices": "node --env-file-if-exists=.env spikes/audio/voices.ts",
+    "spike:audio": "node --env-file-if-exists=.env spikes/audio/run.ts",
+    "spike:contents": "node --env-file-if-exists=.env spikes/page-reading/contents.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2"
+  }
+}
