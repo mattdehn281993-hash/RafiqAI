@@ -25,6 +25,7 @@ run("npm", ["run", "build"], {
   stdio: "inherit",
   env: { ...env, VITE_SUPABASE_URL: env.SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY },
 });
+fs.copyFileSync("app/vercel.json", "app/dist/vercel.json");
 fs.mkdirSync("app/dist/.vercel", { recursive: true });
 if (fs.existsSync("app/.vercel/project.json")) fs.copyFileSync("app/.vercel/project.json", "app/dist/.vercel/project.json");
 

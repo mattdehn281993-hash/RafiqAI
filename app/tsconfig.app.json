@@ -15,7 +15,13 @@
     "moduleDetection": "force",
     "noEmit": true,
     "strict": true,
-    "paths": { "@shared/*": ["../supabase/functions/_shared/*"] },
+    "paths": {
+      "@shared/*": ["../supabase/functions/_shared/*"],
+      // Shared files import these for types; resolve them from the app's own packages
+      // so the app builds on its own (e.g. on Vercel with app/ as the root).
+      "zod": ["./node_modules/zod"],
+      "@anthropic-ai/sdk": ["./node_modules/@anthropic-ai/sdk"]
+    },
     "jsx": "react-jsx",
 
     /* Linting */
@@ -24,5 +30,6 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
 }
