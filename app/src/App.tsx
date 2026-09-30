@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
+import { RouteError } from "./components/RouteError";
 import { Spinner } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { Home } from "./routes/Home";
@@ -20,9 +21,10 @@ function RequireSignIn() {
 
 // Screens other than the first ones load on demand, to keep the first load small on phones.
 export const router = createBrowserRouter([
-  { path: "/signin", element: <SignIn /> },
+  { path: "/signin", element: <SignIn />, errorElement: <RouteError /> },
   {
     element: <RequireSignIn />,
+    errorElement: <RouteError />,
     hydrateFallbackElement: <Spinner />,
     children: [
       { path: "/", element: <Home /> },
