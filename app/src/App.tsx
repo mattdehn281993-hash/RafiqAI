@@ -35,6 +35,7 @@ export const router = createBrowserRouter([
       { path: "/learn/words", lazy: () => import("./routes/Words").then((m) => ({ Component: m.Words })) },
       { path: "/account", lazy: () => import("./routes/Account").then((m) => ({ Component: m.Account })) },
       { path: "/join", lazy: () => import("./routes/Join").then((m) => ({ Component: m.Join })) },
+      { path: "/class/:classId/setup-map", lazy: () => import("./routes/Setup").then((m) => ({ Component: m.Setup })) },
       { path: "/setup", lazy: () => import("./routes/Setup").then((m) => ({ Component: m.Setup })) },
       { path: "/class/:classId/lessons", lazy: () => import("./routes/Lessons").then((m) => ({ Component: m.Lessons })) },
       { path: "/class/:classId/words", lazy: () => import("./routes/Words").then((m) => ({ Component: m.Words })) },

@@ -144,6 +144,27 @@ try {
       console.log("✓ page shows the corrected card");
     }
 
+    // A page saved without a readable page number stays findable and can be filed.
+    if (scheme === "light") {
+      const lost = (await admin.rpc("save_scanned_page", {
+        p_user: userId, p_book: bookId, p_lesson: null, p_model: "m", p_prompt_version: "v",
+        p_page: { ...page8.result.extraction, page_number: null, page_summary: "Unnumbered exercise page" },
+      })).data as string;
+      await page.goto(`${APP}/class/${classId}`);
+      await page.getByText("Not in a lesson yet: tap to set its page number").waitFor({ timeout: 30000 });
+      await page.goto(`${APP}/class/${classId}/lessons`);
+      const listed = await page.getByText("Unnumbered exercise page").waitFor({ timeout: 30000 }).then(() => true, () => false);
+      await page.goto(`${APP}/class/${classId}/page/${lost}`);
+      await page.getByRole("button", { name: "Change" }).click();
+      await page.getByPlaceholder("e.g. 13").fill("12");
+      await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
+      await page.getByText("Page 12 · Lesson One: (Baa)").waitFor({ timeout: 20000 });
+      const { data: filed } = await admin.from("pages").select("page_number, lesson_id").eq("id", lost).single();
+      const ok = listed && filed?.page_number === 12 && filed?.lesson_id === cls.current_lesson_id;
+      console.log(`${ok ? "✓" : "✗"} unnumbered page: shown on Today and Lessons, filed under Lesson One after setting page 12`);
+      if (!ok) errors.push("unnumbered page flow failed");
+    }
+
     // Letters tab: all 28 letters, tap one to open its name and sounds.
     if (scheme === "light") {
       await page.goto(`${APP}/class/${classId}/letters`);

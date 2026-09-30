@@ -100,6 +100,11 @@ export async function correctCard(cardId: string, changes: CardChanges, reason: 
   });
 }
 
+/** Editors: set a saved page's printed number and lesson (lesson null = work it out from the number). */
+export async function setPageInfo(pageId: string, pageNumber: number | null, lessonId: string | null) {
+  return callFunction<{ ok: true }>("card-review", { action: "page", page_id: pageId, page_number: pageNumber, lesson_id: lessonId });
+}
+
 export async function dismissReport(reportId: string) {
   return callFunction<{ ok: true }>("card-review", { action: "dismiss", report_id: reportId });
 }

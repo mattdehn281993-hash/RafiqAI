@@ -38,6 +38,20 @@ export function Lessons() {
       {editor && <p className="text-sm text-muted">Tap a lesson, then “We covered up to here” to move the class when the teacher goes faster or slower than the book.</p>}
       {moveError && <div className="mt-3"><ErrorNote error={moveError} /></div>}
 
+      {pages.some((p) => !p.lesson_id) && (
+        <Section title="Not in a lesson yet">
+          <p className="mb-2 text-sm text-muted">These pages had no readable page number. Open one and set its page number to file it.</p>
+          <div className="flex flex-col gap-2">
+            {pages.filter((p) => !p.lesson_id).map((p) => (
+              <RowLink key={p.id} to={`/class/${classId}/page/${p.id}`}>
+                <span className="font-semibold">Page {p.page_number ?? "?"}</span>
+                <span className="line-clamp-1 text-sm text-muted">{p.summary}</span>
+              </RowLink>
+            ))}
+          </div>
+        </Section>
+      )}
+
       {units.map((u) => {
         const unitLessons = lessons.filter((l) => l.unit_id === u.id);
         if (unitLessons.length === 0) return null;

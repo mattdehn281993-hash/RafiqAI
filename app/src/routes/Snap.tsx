@@ -34,6 +34,8 @@ export function Snap() {
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [items, setItems] = useState<PageItem[]>([]);
   const [lessonId, setLessonId] = useState<string>("");
+  const [pageNumber, setPageNumber] = useState("");
+  const [lessonTouched, setLessonTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPhoto, setShowPhoto] = useState(true);
   const [editing, setEditing] = useState<number | null>(null);
@@ -57,8 +59,11 @@ export function Snap() {
       const result = await callFunction<ExplainResult>("explain-page", { class_id: classId, image: photo.base64 });
       const sorted = [...result.extraction.items].sort((a, b) => a.order - b.order);
       setItems(sorted);
-      const pageNumber = Number(result.extraction.page_number);
-      const guess = ctx.data && lessonForPage(ctx.data.lessons, Number.isInteger(pageNumber) ? pageNumber : null);
+      const read = Number(result.extraction.page_number);
+      const number = Number.isInteger(read) && read > 0 ? read : null;
+      setPageNumber(number ? String(number) : "");
+      setLessonTouched(false);
+      const guess = ctx.data && lessonForPage(ctx.data.lessons, number);
       setLessonId(guess?.id ?? ctx.data?.cls.current_lesson_id ?? "");
       setShowPhoto(true);
       setStep({ kind: "review", photo, result });
@@ -77,7 +82,7 @@ export function Snap() {
       const { page_id } = await callFunction<{ page_id: string }>("save-page", {
         class_id: classId,
         lesson_id: lessonId || null,
-        extraction: { ...result.extraction, items: items.map((it, i) => ({ ...it, order: i + 1 })) },
+        extraction: { ...result.extraction, page_number: pageNumber || null, items: items.map((it, i) => ({ ...it, order: i + 1 })) },
         model: result.model,
         prompt_version: result.promptVersion,
       });
@@ -178,10 +183,28 @@ export function Snap() {
         {showPhoto && <img src={photo.previewUrl} alt="The page you photographed" className="mt-1 max-h-[45dvh] w-full rounded-2xl border border-border object-contain" />}
       </div>
 
+      <label className="mt-3 block">
+        <span className="text-sm font-medium">Page number printed on the page</span>
+        <input
+          inputMode="numeric"
+          value={pageNumber}
+          onChange={(e) => {
+            const v = e.target.value.replace(/D/g, "");
+            setPageNumber(v);
+            // Keep the lesson in step with the number unless it was picked by hand.
+            const guess = ctx.data && !lessonTouched ? lessonForPage(ctx.data.lessons, v ? Number(v) : null) : undefined;
+            if (guess) setLessonId(guess.id);
+          }}
+          placeholder="Type it if Rafiq couldn't read it"
+          className={`mt-1 min-h-12 w-full rounded-2xl border bg-surface px-4 text-lg ${pageNumber ? "border-border" : "border-warn"}`}
+        />
+        {!pageNumber && <span className="mt-1 block text-xs text-warn">The page number wasn't readable in the photo. Typing it files the page under the right lesson.</span>}
+      </label>
+
       {ctx.data && (
         <label className="mt-3 block">
           <span className="text-sm font-medium">Lesson</span>
-          <select value={lessonId} onChange={(e) => setLessonId(e.target.value)} className="mt-1 min-h-12 w-full rounded-2xl border border-border bg-surface px-3">
+          <select value={lessonId} onChange={(e) => { setLessonId(e.target.value); setLessonTouched(true); }} className="mt-1 min-h-12 w-full rounded-2xl border border-border bg-surface px-3">
             <option value="">Not part of a lesson</option>
             {ctx.data.lessons.map((l) => (
               <option key={l.id} value={l.id}>

@@ -1,7 +1,8 @@
 // Book Map: photograph the title and contents pages once; Rafiq builds the
-// lesson list in the book's order and creates the class.
+// lesson list in the book's order and creates the class. At /class/:id/setup-map
+// it adds the lesson list to an existing class that has none.
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import type { BookMap } from "@shared/read-contents.ts";
 import { Button, ErrorNote, Screen, Section } from "../components/ui";
 import { makeUpright } from "../lib/image";
@@ -19,6 +20,7 @@ export function Setup() {
   const camera = useRef<HTMLInputElement>(null);
   const gallery = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const { classId } = useParams(); // set: add a lesson list to this class
 
   useEffect(() => () => photos.forEach((p) => URL.revokeObjectURL(p.url)), [photos]);
 
@@ -48,8 +50,13 @@ export function Setup() {
 
   async function create(map: BookMap) {
     setError(null);
-    setStep({ kind: "working", label: "Creating your class…", started: Date.now() });
+    setStep({ kind: "working", label: classId ? "Adding your lesson list…" : "Creating your class…", started: Date.now() });
     try {
+      if (classId) {
+        await callFunction<{ filed_pages: number }>("card-review", { action: "book_map", class_id: classId, map });
+        navigate(`/class/${classId}`, { replace: true });
+        return;
+      }
       const { class_id } = await callFunction<{ class_id: string }>("create-class", { class_name: className.trim(), map });
       rememberClass(class_id);
       navigate(`/class/${class_id}`, { replace: true });
@@ -71,14 +78,21 @@ export function Setup() {
     const { map } = step;
     const lessons = map.units.flatMap((u) => u.lessons).filter((l) => l.kind !== "front_matter");
     const unsure = lessons.filter((l) => l.needs_checking).length;
+    const empty = lessons.length === 0;
     return (
       <Screen
         title="Check your lesson list"
         back
         action={
-          <Button className="w-full" disabled={!className.trim()} onClick={() => create(map)}>
-            Create class with {lessons.length} lessons
-          </Button>
+          empty ? (
+            <Button className="w-full" onClick={() => setStep({ kind: "pick" })}>
+              Add the contents pages
+            </Button>
+          ) : (
+            <Button className="w-full" disabled={!classId && !className.trim()} onClick={() => create(map)}>
+              {classId ? `Add ${lessons.length} lessons to the class` : `Create class with ${lessons.length} lessons`}
+            </Button>
+          )
         }
       >
         <div className="rounded-2xl bg-surface p-4">
@@ -89,18 +103,27 @@ export function Setup() {
             {[map.book_title_en, map.level_en, map.year].filter(Boolean).join(" · ")}
           </p>
         </div>
+        {empty && (
+          <p className="mt-3 rounded-2xl bg-bad-bg p-3 text-sm text-bad">
+            No lessons were found. These photos seem to be only the title or cover. Add every contents page (فهرس المحتويات), the pages listing the lessons with page numbers.
+          </p>
+        )}
         {unsure > 0 && <p className="mt-3 rounded-2xl bg-warn-bg p-3 text-sm text-warn">{unsure} rows need checking. They're marked below.</p>}
         {error && <div className="mt-3"><ErrorNote error={error} /></div>}
 
-        <label htmlFor="class-name" className="mt-5 block text-sm font-medium">
-          Class name
-        </label>
-        <input
-          id="class-name"
-          value={className}
-          onChange={(e) => setClassName(e.target.value)}
-          className="mt-1 min-h-12 w-full rounded-2xl border border-border bg-surface px-4"
-        />
+        {!classId && (
+          <>
+            <label htmlFor="class-name" className="mt-5 block text-sm font-medium">
+              Class name
+            </label>
+            <input
+              id="class-name"
+              value={className}
+              onChange={(e) => setClassName(e.target.value)}
+              className="mt-1 min-h-12 w-full rounded-2xl border border-border bg-surface px-4"
+            />
+          </>
+        )}
 
         {map.units.map((u, i) => (
           <Section key={i} title={u.title_en ?? "Introduction"}>
@@ -133,8 +156,8 @@ export function Setup() {
 
   return (
     <Screen
-      title="Set up your textbook"
-      back="/"
+      title={classId ? "Add your lesson list" : "Set up your textbook"}
+      back={classId ? `/class/${classId}` : "/"}
       action={
         <Button className="w-full" disabled={photos.length === 0} onClick={read}>
           Read {photos.length || ""} photo{photos.length === 1 ? "" : "s"}
@@ -142,7 +165,7 @@ export function Setup() {
       }
     >
       <p className="mt-1 text-muted">
-        Photograph the <strong className="text-text">title page</strong> and every <strong className="text-text">contents page</strong>, in order. You only do this once.
+        Photograph the <strong className="text-text">title page</strong> and every <strong className="text-text">contents page</strong> (فهرس المحتويات, the pages listing each lesson with its page number), in order. You only do this once.
       </p>
       {error && <div className="mt-4"><ErrorNote error={error} /></div>}
 

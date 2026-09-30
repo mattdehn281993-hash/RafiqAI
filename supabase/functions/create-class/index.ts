@@ -3,7 +3,7 @@
 // becomes the class editor and can then invite classmates.
 import * as z from "zod";
 import { BookMap } from "../_shared/read-contents.ts";
-import { body, handle, json } from "../_edge/http.ts";
+import { body, handle, HttpError, json } from "../_edge/http.ts";
 
 const Body = z.object({
   class_name: z.string().trim().min(1).max(80),
@@ -17,6 +17,11 @@ Deno.serve(handle(async (req, ctx) => {
     p_class_name: input.class_name,
     p_map: input.map,
   });
-  if (error) throw error;
+  if (error) {
+    if (/No lessons/.test(error.message)) {
+      throw new HttpError(422, "No lessons were found in these photos. Add every contents page (فهرس المحتويات), not only the title page.");
+    }
+    throw error;
+  }
   return json({ class_id: data });
 }));

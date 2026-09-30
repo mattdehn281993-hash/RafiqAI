@@ -201,6 +201,22 @@ await expect("conversation cards seeded", () => db.query("select count(*)::int n
 await expect("greeting card says the pause form", () => db.query("select tts_text, pronunciation from current_cards c join cards k using (id) where k.builtin_key = 'conv-morning'"), (r) => r && r.rows[0]?.tts_text === "صَبَاحُ الْخَيْرْ" && r.rows[0]?.pronunciation === "ṣa-BAA-ḥul khayr");
 await expect("students can read conversation cards", () => as(B, "select count(*)::int n from current_cards where level = 4"), (r) => r && r.rows[0].n >= 25);
 
+// Classes need lessons; an empty class can get its lesson list later; editors fix page info.
+await expect("a class with no lessons can't be created", () => db.query(`select create_class_from_book_map('${C}', 'Empty', '{"units": [{"title_ar": null, "lessons": [{"title_ar": "غلاف", "kind": "front_matter", "page": 1}]}]}'::jsonb)`), (r, e) => !!e && /No lessons/.test(e.message));
+const emptyBook = (await db.query(`insert into books (title_ar, created_by) values ('كتاب فارغ', '${C}') returning id`)).rows[0].id;
+const emptyClass = (await db.query(`insert into classes (book_id, name, created_by) values ('${emptyBook}', 'No map', '${C}') returning id`)).rows[0].id;
+await db.exec(`insert into memberships (class_id, user_id, role) values ('${emptyClass}', '${C}', 'editor')`);
+const lostPage = (await db.query(`select save_scanned_page('${C}', '${emptyBook}', null, 'm', 'v', '{"page_number": 15, "items": []}'::jsonb) as id`)).rows[0].id;
+const noNumber = (await db.query(`select save_scanned_page('${C}', '${emptyBook}', null, 'm', 'v', '{"page_number": null, "items": []}'::jsonb) as id`)).rows[0].id;
+await expect("student can't set another class's lesson list", () => db.query(`select set_book_map('${B}', '${emptyClass}', '${map}'::jsonb)`), (r, e) => !!e && /Only editors/.test(e.message));
+await expect("editor adds the lesson list and pages get filed", () => db.query(`select set_book_map('${C}', '${emptyClass}', '${map}'::jsonb) as n`), (r) => r && r.rows[0].n === 1);
+await expect("page 15 filed under the lesson starting at 14", () => db.query(`select l.title_ar from pages p join lessons l on l.id = p.lesson_id where p.id = '${lostPage}'`), (r) => r && r.rows[0]?.title_ar === "التاء");
+await expect("class now starts at the first real lesson", () => db.query(`select l.title_ar from classes c join lessons l on l.id = c.current_lesson_id where c.id = '${emptyClass}'`), (r) => r && r.rows[0]?.title_ar === "الباء");
+await expect("lesson list can't be replaced once set", () => db.query(`select set_book_map('${C}', '${emptyClass}', '${map}'::jsonb)`), (r, e) => !!e && /already has/.test(e.message));
+await expect("editor sets a missing page number; lesson follows", () => db.query(`select update_page_info('${C}', '${noNumber}', 9, null)`).then(() => db.query(`select p.page_number, l.title_ar from pages p join lessons l on l.id = p.lesson_id where p.id = '${noNumber}'`)), (r) => r && r.rows[0]?.page_number === 9 && r.rows[0]?.title_ar === "الباء");
+await expect("student can't change page info", () => db.query(`select update_page_info('${B}', '${noNumber}', 10, null)`), (r, e) => !!e && /Only editors/.test(e.message));
+await expect("app can't call set_book_map directly", () => as(C, `select set_book_map('${C}', '${emptyClass}', '{}'::jsonb)`), denied);
+
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");
 await expect("anonymous sees no books", () => db.query("select * from books"), rows(0));

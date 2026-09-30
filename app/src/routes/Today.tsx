@@ -57,6 +57,9 @@ export function Today() {
   const number = current ? teaching.indexOf(current) + 1 : 0;
   const unit = units.find((u) => u.id === current?.unit_id);
   const lessonPages = pages.filter((p) => p.lesson_id === current?.id);
+  // Every saved page stays findable, whatever lesson (or none) it was filed under.
+  const recent = [...pages].sort((a, b) => b.scanned_at.localeCompare(a.scanned_at)).slice(0, 5);
+  const lessonTitle = (id: string | null) => lessons.find((l) => l.id === id)?.title_en ?? null;
   const upNext = nextLesson(lessons, cls.current_lesson_id);
   const previewed = previewRuns.find((r) => r.lesson_id === upNext?.id);
 
@@ -72,6 +75,21 @@ export function Today() {
       }
     >
       <InstallPrompt />
+      {teaching.length === 0 && (
+        <div className="mb-3 rounded-3xl border-2 border-warn bg-warn-bg p-4 text-warn">
+          <p className="font-bold">This class has no lesson list yet</p>
+          <p className="mt-1 text-sm">
+            {cls.role === "editor"
+              ? "Photograph the book's contents pages (فهرس المحتويات) so Rafiq can build the lessons. Pages you've saved will be filed into them."
+              : "Ask your class editor to add the book's contents pages."}
+          </p>
+          {cls.role === "editor" && (
+            <Link to={`/class/${classId}/setup-map`} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-accent px-4 font-semibold text-on-accent">
+              Add your lesson list
+            </Link>
+          )}
+        </div>
+      )}
       {current && (
         <div className="mt-2 rounded-3xl bg-accent p-5 text-on-accent">
           <div className="flex items-start justify-between gap-3">
@@ -167,6 +185,26 @@ export function Today() {
           </div>
         )}
       </Section>
+
+      {recent.length > 0 && (
+        <Section title="Recently saved pages">
+          <div className="flex flex-col gap-2">
+            {recent.map((p) => (
+              <RowLink key={p.id} to={`/class/${classId}/page/${p.id}`}>
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft font-bold text-accent">
+                  {p.page_number ?? "?"}
+                </span>
+                <span className="min-w-0">
+                  <span className="line-clamp-1 text-sm">{p.summary}</span>
+                  <span className={`block text-xs ${p.lesson_id ? "text-muted" : "font-semibold text-warn"}`}>
+                    {lessonTitle(p.lesson_id) ?? "Not in a lesson yet: tap to set its page number"}
+                  </span>
+                </span>
+              </RowLink>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {instructions.length > 0 && (
         <Section title="Classroom instructions">
