@@ -13,7 +13,13 @@
     "spike:audio": "node --env-file-if-exists=.env spikes/audio/run.ts",
     "spike:contents": "node --env-file-if-exists=.env spikes/page-reading/contents.ts",
     "test:db": "node supabase/tests/rls-check.mjs",
-    "db:migrate": "node --env-file=.env scripts/db-migrate.mjs"
+    "db:migrate": "node --env-file=.env scripts/db-migrate.mjs",
+    "secrets": "node --env-file=.env scripts/set-secrets.mjs",
+    "functions:check": "cd supabase/functions && deno check --config deno.json */index.ts",
+    "functions:deploy": "node --env-file=.env scripts/deploy-functions.mjs",
+    "smoke": "node --env-file=.env scripts/smoke-test.ts",
+    "auth:config": "node --env-file=.env scripts/configure-auth.mjs",
+    "ui:screens": "node --env-file=.env scripts/ui-screens.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
@@ -22,7 +28,10 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@supabase/supabase-js": "^2.117.2",
     "@types/node": "^26.6.3",
+    "deno": "^2.9.6",
+    "playwright-core": "^1.63.0",
     "typescript": "^7.0.2"
   }
 }
