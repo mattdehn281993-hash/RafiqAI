@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Both are public by design (they ship inside the app; row-level security
+// protects the data). Defaults keep a deploy working even without env vars.
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  import.meta.env.VITE_SUPABASE_URL || "https://abocurfmlkxyijcrniie.supabase.co",
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable__TH1dz8PnJ1bFcYNz6IFjQ_hWgVL1c-",
 );
 
 /** Calls an edge function; turns its `{ error }` body into a thrown Error. */
