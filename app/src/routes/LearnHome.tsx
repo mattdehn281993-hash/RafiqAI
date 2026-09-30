@@ -2,6 +2,7 @@
 // practice work straight after sign-in. A textbook class is optional extra.
 import { Link } from "react-router";
 import { InstallPrompt } from "../components/InstallPrompt";
+import { OfflineDownload } from "../components/OfflineDownload";
 import { RowLink, Screen, Section, Spinner } from "../components/ui";
 import { myClasses } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -64,6 +65,10 @@ export function LearnHome() {
             </div>
           </div>
         )}
+      </Section>
+
+      <Section title="Offline">
+        <OfflineDownload />
       </Section>
 
       <Section title="Account">

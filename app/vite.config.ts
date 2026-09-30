@@ -13,6 +13,34 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon-48.png", "apple-touch-icon.png"],
+      workbox: {
+        // Offline: the app itself is precached; data you've loaded is kept too.
+        runtimeCaching: [
+          {
+            // Supabase data (read-only requests). Network first so it's fresh when
+            // online; the last copy is used when offline or after 5 s of waiting.
+            urlPattern: ({ url, request }) =>
+              request.method === "GET" && url.hostname.endsWith(".supabase.co") && url.pathname.startsWith("/rest/v1/"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "rafiq-data",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 1000, maxAgeSeconds: 60 * 60 * 24 * 60 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            // The Arabic font, so text still renders properly offline.
+            urlPattern: ({ url }) => url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com",
+            handler: "CacheFirst",
+            options: {
+              cacheName: "rafiq-fonts",
+              expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
       manifest: {
         id: "/",
         name: "Rafiq — Arabic Class Companion",

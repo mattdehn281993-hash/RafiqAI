@@ -1,6 +1,7 @@
 // Small shared UI pieces. Mobile-first: 44px+ tap targets, thumb-reachable actions.
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router";
+import { useOnline } from "../lib/online";
 
 export function Button({
   variant = "primary",
@@ -106,6 +107,7 @@ export function Screen({
 }) {
   const navigate = useNavigate();
   const tabs = !!classId || !!learn;
+  const online = useOnline();
   const bottomSpace = (tabs ? 64 : 0) + (action ? 84 : 16);
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
@@ -126,6 +128,12 @@ export function Screen({
           {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
         </div>
       </header>
+
+      {!online && (
+        <p className="mx-4 mb-2 rounded-2xl bg-warn-bg px-3 py-2 text-sm text-warn" role="status">
+          <strong>Offline.</strong> Saved lessons, letters, conversation and practice still work. Progress isn't saved until you're back online.
+        </p>
+      )}
 
       <main className="flex-1 px-4" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${bottomSpace}px)` }}>
         {children}

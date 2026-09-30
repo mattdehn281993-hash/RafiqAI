@@ -1,8 +1,10 @@
 // Guided speaking practice for textbook items. The student gets a situation
-// and the other speaker's line, answers aloud, then reveals a model response.
+// and hears the other speaker's line, answers aloud, then reveals (and hears) a
+// model response. Both lines can be replayed, normal or slow.
 // Self-graded, so it stays out of the vocabulary review queue; the end screen
 // offers another round with just the ones that need work.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { playClip, prepareClips, usageKey } from "../lib/audio";
 import type { Card } from "../lib/types";
 import { ArabicText } from "./ArabicText";
 import { Button } from "./ui";
@@ -16,6 +18,24 @@ export function ContextPractice({ cards }: { cards: Card[] }) {
   const results = useRef<{ card: Card; ok: boolean }[]>([]);
   const graded = useRef(-1); // the index already graded, so a double tap counts once
   const card = round[index];
+  const [audioError, setAudioError] = useState<string | null>(null);
+
+  // Get every line's audio ready (and saved on the phone) up front.
+  useEffect(() => {
+    prepareClips(all.flatMap((c) => [usageKey(c.id, "prompt"), usageKey(c.id, "response")])).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all.length]);
+
+  const play = (key: string, slow = false) => {
+    setAudioError(null);
+    playClip(key, slow).catch((err) => setAudioError(err instanceof Error ? err.message : "Could not play audio"));
+  };
+
+  // Each conversation opens with the other person's line.
+  useEffect(() => {
+    if (card && !needWork) play(usageKey(card.id, "prompt"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id, round, needWork]);
 
   if (!all.length) return <p className="rounded-2xl bg-surface p-4 text-muted">This page does not have conversation practice yet.</p>;
 
@@ -82,7 +102,10 @@ export function ContextPractice({ cards }: { cards: Card[] }) {
         <p className="mt-1 text-lg font-semibold">{usage.context}</p>
 
         <div className="mt-5 rounded-2xl rounded-bl-md bg-soft p-4">
-          <p className="text-xs font-bold text-muted">THEM</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-muted">THEM</p>
+            <Listen onPlay={() => play(usageKey(card.id, "prompt"))} onSlow={() => play(usageKey(card.id, "prompt"), true)} />
+          </div>
           <p className="mt-1 text-right">
             <ArabicText printed={usage.prompt_arabic} full={usage.prompt_arabic} className="text-3xl" />
           </p>
@@ -91,7 +114,10 @@ export function ContextPractice({ cards }: { cards: Card[] }) {
         </div>
 
         <div className="mt-3 rounded-2xl rounded-br-md border-2 border-dashed border-accent bg-accent-soft p-4">
-          <p className="text-xs font-bold text-accent">YOU</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-accent">YOU</p>
+            {revealed && <Listen onPlay={() => play(usageKey(card.id, "response"))} onSlow={() => play(usageKey(card.id, "response"), true)} />}
+          </div>
           {revealed ? (
             <>
               <p className="mt-1 text-right">
@@ -120,9 +146,32 @@ export function ContextPractice({ cards }: { cards: Card[] }) {
           <Button onClick={() => grade(true)}>I said it</Button>
         </div>
       ) : (
-        <Button onClick={() => setRevealed(true)}>Reveal a model answer</Button>
+        <Button
+          onClick={() => {
+            setRevealed(true);
+            play(usageKey(card.id, "response"));
+          }}
+        >
+          Reveal and hear a model answer
+        </Button>
       )}
+      {audioError && <p className="text-center text-sm text-bad">{audioError}</p>}
       <p className="text-center text-xs text-muted">A model answer is one natural answer, not the only possible answer.</p>
+    </div>
+  );
+}
+
+function Listen({ onPlay, onSlow }: { onPlay: () => void; onSlow: () => void }) {
+  return (
+    <div className="flex gap-1">
+      <button onClick={onPlay} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-accent active:bg-surface" aria-label="Play">
+        <svg viewBox="0 0 24 24" className="size-6" fill="currentColor" aria-hidden>
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </button>
+      <button onClick={onSlow} className="min-h-11 rounded-xl px-2 text-sm font-semibold text-accent active:bg-surface" aria-label="Play slowly">
+        Slow
+      </button>
     </div>
   );
 }

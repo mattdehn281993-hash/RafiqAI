@@ -42,10 +42,10 @@ const browser = await chromium.launch({ channel: "msedge", headless: true });
     await page.goto(APP);
     await page.evaluate(([key, session]) => localStorage.setItem(key, session), [`sb-${ref}-auth-token`, JSON.stringify(s.session)]);
     await page.goto(APP);
-    await page.getByText("The alphabet").waitFor({ timeout: 30000 });
+    await page.getByText("The alphabet", { exact: true }).waitFor({ timeout: 30000 });
     const landed = new globalThis.URL(page.url()).pathname;
     await page.screenshot({ path: path.join(out, "00-learn-home-light.png") });
-    await page.getByText("The alphabet").click();
+    await page.getByText("The alphabet", { exact: true }).click();
     await page.getByRole("button", { name: /Letter baaʾ/ }).waitFor({ timeout: 30000 });
     const letters = await page.getByRole("button", { name: /^Letter / }).count();
     await page.screenshot({ path: path.join(out, "00-learn-letters-light.png") });
@@ -177,7 +177,7 @@ try {
       await page.screenshot({ path: path.join(out, "22-practice-created-light.png") });
       await page.getByRole("button", { name: "Start speaking practice" }).click();
       const inPractice = new globalThis.URL(page.url()).searchParams.get("practice") === "1";
-      await page.getByRole("button", { name: "Reveal a model answer" }).click();
+      await page.getByRole("button", { name: /Reveal/ }).click();
       await page.screenshot({ path: path.join(out, "23-practice-light.png") });
       const saidIt = page.getByRole("button", { name: "I said it" });
       await saidIt.dblclick(); // a double tap counts once

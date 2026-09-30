@@ -45,15 +45,14 @@ export async function recordResults(results: Result[]): Promise<void> {
   must(await supabase.from("progress").upsert(payload, { onConflict: "user_id,card_id" }));
 }
 
-/** Cards due for review now, most overdue first. */
+/**
+ * Cards due for review now, most overdue first. The request doesn't include the
+ * time (it would never match a saved offline copy); "due" is decided here.
+ */
 export async function dueCardIds(limit = 15): Promise<string[]> {
   const rows = must(
-    await supabase
-      .from("progress")
-      .select("card_id")
-      .lte("next_review_at", new Date().toISOString())
-      .order("next_review_at")
-      .limit(limit),
-  ) as { card_id: string }[];
-  return rows.map((r) => r.card_id);
+    await supabase.from("progress").select("card_id, next_review_at").not("next_review_at", "is", null).order("next_review_at").limit(500),
+  ) as { card_id: string; next_review_at: string }[];
+  const now = Date.now();
+  return rows.filter((r) => Date.parse(r.next_review_at) <= now).slice(0, limit).map((r) => r.card_id);
 }

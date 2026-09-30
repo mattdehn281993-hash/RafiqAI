@@ -74,7 +74,7 @@ The roadmap diagram in the PRD did not survive the markdown export, so this orde
 - [x] Supabase project, schema, RLS, invite-only access (invite codes), classes and memberships (`npm run test:db`: 47 checks)
 - [x] Book Map (`read-contents`, low effort: 64 s), lesson list, class position
 - [x] Page Helper (`explain-page` + `save-page`) with check/edit step; photo discarded after saving
-- [x] Speaking practice: a page's words, phrases and sentences become short call-and-response situations with a reusable pattern, created on demand (`teach-page`) and stored apart from the textbook cards (`card_usages`), so cards and their versions never change; editors can edit or remove them
+- [x] Speaking practice (with audio for both lines, normal and slow): a page's words, phrases and sentences become short call-and-response situations with a reusable pattern, created on demand (`teach-page`) and stored apart from the textbook cards (`card_usages`), so cards and their versions never change; editors can edit or remove them
 - [x] Audio (`get-audio`), normal + slow, cached per voice + model + text. Voice models (2026-09-30): phrases and sentences use `eleven_v3`; letters, sounds and single words use `eleven_multilingual_v2`, because v3 draws short items out 3–4× (بَ 2.4 s vs 0.6 s, كِتَابْ 3.9 s vs 1.0 s). Set with `ELEVENLABS_MODEL_ID` / `ELEVENLABS_SHORT_MODEL_ID`
 - [x] Today's Class home screen, "We covered up to here" (editors)
 - [x] My Words
@@ -98,7 +98,7 @@ Limits to watch: free-plan functions stop at 150 s. Lesson pages take 20–75 s;
 - [x] Practice: hear-and-pick (look-alike wrong answers: same letter other vowel, ب/ت/ث), see-it-say-it flashcards, This lesson, My Words
 - [x] Review queue with spaced repetition (Today's review: due cards + new saved words; right answers wait 1→30 days, misses return in 10 min)
 - [x] After-class check-in (yes / partly / no) on Today
-- [ ] Offline lesson download with ready indicator and retry
+- [x] Offline: the service worker keeps data you've loaded (network first, saved copy when offline); every clip played is saved on the phone; "Download for offline" saves the alphabet, conversation, all saved pages and their audio in one go, with progress and a ready note. Scanning, creating practice and saving progress need internet (offline banner says so). `npm run offline:check` tests it on a production build
 
 ### Phase 3 — Complete v1
 

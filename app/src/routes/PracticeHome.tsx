@@ -8,12 +8,11 @@ import { Flashcards, QuizRunner, ScoreSummary } from "../components/Practice";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { prepareAudio } from "../lib/audio";
 import { builtinCards, letterSet, lettersSoFar } from "../lib/builtin";
-import { cardsByIds, getClass, lessonsOf } from "../lib/data";
+import { cardsByIds, getClass, lessonsOf, practisedCardIds, savedWords } from "../lib/data";
 import { dueCardIds, recordResults, type Result } from "../lib/progress";
 import { buildQuiz, type Question } from "../lib/quiz";
-import { supabase } from "../lib/supabase";
 import type { Card } from "../lib/types";
-import { must, useAsync } from "../lib/useAsync";
+import { useAsync } from "../lib/useAsync";
 
 type Mode = { kind: "menu" } | { kind: "quiz"; title: string; questions: Question[] } | { kind: "cards"; title: string; cards: Card[] } | { kind: "done"; title: string; results: Result[] };
 
@@ -33,11 +32,11 @@ export function PracticeHome() {
       cls ? letterSet(current?.focus) : Promise.resolve(null),
       builtinCards(),
       dueCardIds(20),
-      supabase.from("saved_words").select("card_id").order("saved_at", { ascending: false }).limit(40),
-      supabase.from("progress").select("card_id"),
+      savedWords(),
+      practisedCardIds(),
     ]);
-    const savedIds = (must(saved) as { card_id: string }[]).map((s) => s.card_id);
-    const practised = new Set((must(progressed) as { card_id: string }[]).map((p) => p.card_id));
+    const savedIds = saved.slice(0, 40).map((s) => s.card_id);
+    const practised = progressed;
     const newSaved = savedIds.filter((id) => !practised.has(id)).slice(0, 5);
     const lookup = await cardsByIds([...new Set([...due, ...newSaved, ...savedIds])]);
 

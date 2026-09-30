@@ -6,10 +6,10 @@ import { CardTile } from "../components/CardTile";
 import { ContextPractice } from "../components/ContextPractice";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { forgetAudio, prepareAudio } from "../lib/audio";
-import { getClass, lessonsOf, pageCards, rowsOf, saveCardEdits, savedCardIds, setPageInfo, toggleSaved } from "../lib/data";
-import { callFunction, supabase } from "../lib/supabase";
+import { loadPageData, rowsOf, saveCardEdits, setPageInfo, toggleSaved } from "../lib/data";
+import { callFunction } from "../lib/supabase";
 import type { Lesson, PageRow, PlacedCard } from "../lib/types";
-import { must, useAsync } from "../lib/useAsync";
+import { useAsync } from "../lib/useAsync";
 
 /** Cards worth practising in conversation (matches the server's teach-page). */
 const CONVERSATIONAL = ["word", "phrase", "sentence"];
@@ -19,14 +19,7 @@ const wide = (row: { arabic_full: string }[], c: { arabic_full: string }) => row
 
 export function PageView() {
   const { classId = "", pageId = "" } = useParams();
-  const { data, error, loading, reload } = useAsync(async () => {
-    const page = must(await supabase.from("pages").select("id, book_id, lesson_id, page_number, page_kind, summary, scanned_at").eq("id", pageId).single()) as PageRow & { book_id: string };
-    const lesson = page.lesson_id
-      ? (must(await supabase.from("lessons").select("title_en, title_ar").eq("id", page.lesson_id).single()) as { title_en: string | null; title_ar: string })
-      : null;
-    const [cards, saved, cls, map] = await Promise.all([pageCards(pageId), savedCardIds(), getClass(classId), lessonsOf(page.book_id)]);
-    return { page, lesson, cards, saved, editor: cls.role === "editor", lessons: map.lessons };
-  }, [pageId]);
+  const { data, error, loading, reload } = useAsync(() => loadPageData(classId, pageId), [pageId]);
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [audioError, setAudioError] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlacedCard | null>(null);

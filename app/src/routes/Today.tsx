@@ -5,14 +5,14 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArabicText } from "../components/ArabicText";
 import { InstallPrompt } from "../components/InstallPrompt";
+import { OfflineDownload } from "../components/OfflineDownload";
 import { LetterSounds } from "../components/LetterSounds";
 import { Button, ErrorNote, RowLink, Screen, Section, Spinner } from "../components/ui";
 import { playCard, prepareAudio } from "../lib/audio";
 import { letterSet } from "../lib/builtin";
-import { getClass, lessonsOf, nextLesson, pagesOf } from "../lib/data";
+import { classroomInstructions, getClass, lessonsOf, nextLesson, pagesOf, previewRuns as loadPreviewRuns } from "../lib/data";
 import { supabase } from "../lib/supabase";
-import type { Card } from "../lib/types";
-import { must, useAsync } from "../lib/useAsync";
+import { useAsync } from "../lib/useAsync";
 import { rememberClass } from "./Home";
 
 export function Today() {
@@ -24,20 +24,21 @@ export function Today() {
       lessonsOf(cls.book_id),
       pagesOf(cls.book_id),
       classroomInstructions(cls.book_id),
-      cls.role === "editor" ? openReportCount(cls.book_id) : Promise.resolve(0),
+      // Extras here are nice to have: they never block Today (e.g. when offline).
+      cls.role === "editor" ? openReportCount(cls.book_id).catch(() => 0) : Promise.resolve(0),
     ]);
     const currentLesson = lessons.find((l) => l.id === cls.current_lesson_id);
     const sounds = await letterSet(currentLesson?.focus).catch(() => null);
     const today = new Date().toISOString().slice(0, 10);
     const [runs, checkin] = await Promise.all([
-      supabase.from("preview_runs").select("lesson_id, score, total, completed_at").order("completed_at", { ascending: false }).limit(20),
+      loadPreviewRuns().catch(() => []),
       cls.current_lesson_id
-        ? supabase.from("checkins").select("answer").eq("lesson_id", cls.current_lesson_id).eq("checkin_date", today).maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+        ? Promise.resolve(supabase.from("checkins").select("answer").eq("lesson_id", cls.current_lesson_id).eq("checkin_date", today).maybeSingle()).catch(() => ({ data: null }))
+        : Promise.resolve({ data: null }),
     ]);
     return {
       cls, lessons, units, pages, instructions, reports,
-      previewRuns: (must(runs) as { lesson_id: string; score: number; total: number }[]),
+      previewRuns: runs,
       checkin: (checkin.data as { answer: string } | null)?.answer ?? null,
       sounds,
     };
@@ -237,6 +238,10 @@ export function Today() {
         </Section>
       )}
 
+      <Section title="Offline">
+        <OfflineDownload />
+      </Section>
+
       <Section title="Account">
         <RowLink to="/account">
           <span className="font-medium">Password and sign out</span>
@@ -284,20 +289,6 @@ function CheckIn({ lessonId, answer }: { lessonId: string | null; answer: string
       {error && <p className="mt-2 text-sm text-bad">{error}</p>}
     </div>
   );
-}
-
-/** Instruction lines seen on this book's saved pages, one per distinct text. */
-async function classroomInstructions(bookId: string): Promise<Card[]> {
-  const rows = must(
-    await supabase.from("current_cards").select("*").eq("book_id", bookId).eq("kind", "instruction").limit(100),
-  ) as Card[];
-  const seen = new Set<string>();
-  return rows.filter((c) => {
-    const key = c.tts_text.replace(/[^ء-ي\s]/g, "").trim();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 async function openReportCount(bookId: string): Promise<number> {

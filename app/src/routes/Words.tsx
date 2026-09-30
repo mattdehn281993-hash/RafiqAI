@@ -5,19 +5,14 @@ import { useBase } from "../lib/base";
 import { CardTile } from "../components/CardTile";
 import { ErrorNote, Screen, Section, Spinner } from "../components/ui";
 import { prepareAudio } from "../lib/audio";
-import { cardsByIds, getClass, lessonsOf, toggleSaved } from "../lib/data";
-import { supabase } from "../lib/supabase";
-import { must, useAsync } from "../lib/useAsync";
+import { cardsByIds, getClass, lessonsOf, savedWords, toggleSaved } from "../lib/data";
+import { useAsync } from "../lib/useAsync";
 
 export function Words() {
   const { classId } = useBase();
   const { data, error, loading, reload } = useAsync(async () => {
     const cls = classId ? await getClass(classId) : null;
-    const saved = must(await supabase.from("saved_words").select("card_id, lesson_id, saved_at").order("saved_at", { ascending: false })) as {
-      card_id: string;
-      lesson_id: string | null;
-      saved_at: string;
-    }[];
+    const saved = await savedWords();
     const [cards, lessons] = await Promise.all([
       cardsByIds(saved.map((s) => s.card_id)),
       cls ? lessonsOf(cls.book_id).then((r) => r.lessons) : Promise.resolve([]),

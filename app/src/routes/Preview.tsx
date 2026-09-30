@@ -8,30 +8,14 @@ import { QuizRunner, ScoreSummary } from "../components/Practice";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { playCard, prepareAudio } from "../lib/audio";
 import { builtinCards, letterSet } from "../lib/builtin";
-import { cardsByIds, getClass, lessonsOf, nextLesson, pagesOf } from "../lib/data";
+import { bookWordPool, getClass, lessonsOf, lessonWordCards, nextLesson } from "../lib/data";
 import { recordResults, type Result } from "../lib/progress";
 import { buildQuiz } from "../lib/quiz";
 import { supabase } from "../lib/supabase";
 import type { Card } from "../lib/types";
-import { must, useAsync } from "../lib/useAsync";
+import { useAsync } from "../lib/useAsync";
 
 const QUIZ_SECONDS = 120;
-const WORD_KINDS = ["word", "phrase", "sentence", "instruction"];
-
-async function lessonWordCards(lessonId: string, bookId: string): Promise<Card[]> {
-  const pages = (await pagesOf(bookId)).filter((p) => p.lesson_id === lessonId);
-  if (pages.length === 0) return [];
-  const placed = must(
-    await supabase.from("page_cards").select("card_id, page_id, position").in("page_id", pages.map((p) => p.id)).order("position"),
-  ) as { card_id: string }[];
-  const cards = await cardsByIds(placed.map((p) => p.card_id));
-  const seen = new Set<string>();
-  return placed
-    .map((p) => cards.get(p.card_id))
-    .filter((c): c is Card => !!c && WORD_KINDS.includes(c.kind))
-    .filter((c) => (seen.has(c.tts_text) ? false : (seen.add(c.tts_text), true)))
-    .slice(0, 12);
-}
 
 export function Preview() {
   const { classId = "" } = useParams();
@@ -47,9 +31,7 @@ export function Preview() {
     const [set, words, builtins] = await Promise.all([letterSet(lesson.focus), lessonWordCards(lesson.id, cls.book_id), builtinCards()]);
     const cards = [...(set ? [set.name, ...set.short, ...set.long] : []), ...words];
     // Wrong answers: other letters' sounds for sound questions, and the book's other words for meanings.
-    const bookWords = must(
-      await supabase.from("current_cards").select("*").eq("book_id", cls.book_id).in("kind", ["word", "phrase"]).limit(80),
-    ) as Card[];
+    const bookWords = await bookWordPool(cls.book_id);
     const pool = [...cards, ...builtins.values(), ...bookWords];
     return { cls, lessons, lesson, set, cards, pool, current: lessons.find((l) => l.id === cls.current_lesson_id) };
   }, [classId, params.get("lesson")]);
