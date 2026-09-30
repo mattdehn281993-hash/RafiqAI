@@ -47,9 +47,7 @@ export function SignIn() {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)]">
-      <p className="font-arabic text-6xl text-accent" lang="ar" dir="rtl">
-        رَفِيق
-      </p>
+      <img src="/icon-192.png" alt="" className="size-20 rounded-3xl shadow-sm" />
       <h1 className="mt-2 text-3xl font-bold">Rafiq</h1>
       <p className="mt-2 text-muted">Your companion for Arabic class: every textbook page explained, with easy pronunciation and audio.</p>
 

@@ -1,6 +1,7 @@
 // Home for the class-free foundations: the alphabet, everyday conversation and
 // practice work straight after sign-in. A textbook class is optional extra.
 import { Link } from "react-router";
+import { InstallPrompt } from "../components/InstallPrompt";
 import { Button, RowLink, Screen, Section, Spinner } from "../components/ui";
 import { myClasses } from "../lib/data";
 import { supabase } from "../lib/supabase";
@@ -28,6 +29,7 @@ export function LearnHome() {
 
   return (
     <Screen title="Rafiq" subtitle="Arabic from the very first letter" learn>
+      <InstallPrompt />
       <div className="flex flex-col gap-3">
         <BigLink to="/learn/letters" primary title="The alphabet" detail="28 letters, each with its name and sounds" arabic="أ ب ت" />
         <BigLink to="/learn/talk" title="Conversation" detail="Greetings, how are you, your name, where you're from, your age" arabic="السَّلَامُ" />

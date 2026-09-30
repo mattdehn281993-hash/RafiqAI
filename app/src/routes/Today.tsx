@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArabicText } from "../components/ArabicText";
+import { InstallPrompt } from "../components/InstallPrompt";
 import { LetterSounds } from "../components/LetterSounds";
 import { Button, ErrorNote, RowLink, Screen, Section, Spinner } from "../components/ui";
 import { playCard, prepareAudio } from "../lib/audio";
@@ -70,6 +71,7 @@ export function Today() {
         </Button>
       }
     >
+      <InstallPrompt />
       {current && (
         <div className="mt-2 rounded-3xl bg-accent p-5 text-on-accent">
           <div className="flex items-start justify-between gap-3">
