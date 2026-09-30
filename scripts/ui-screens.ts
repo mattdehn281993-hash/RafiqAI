@@ -101,6 +101,63 @@ try {
       console.log("✓ page shows the corrected card");
     }
 
+    // Tonight's Preview → 2-minute quiz → score saved; Practice → progress saved; check-in.
+    if (scheme === "light") {
+      const answerAll = async (doneText: string) => {
+        for (let i = 0; i < 40; i++) {
+          if (await page.getByText(doneText).first().isVisible().catch(() => false)) return true;
+          const option = page.locator("div.grid.grid-cols-2 > button").first();
+          if (await option.isVisible().catch(() => false)) await option.click().catch(() => {});
+          await page.waitForTimeout(1800);
+        }
+        return false;
+      };
+
+      await page.goto(`${APP}/class/${classId}/preview`);
+      await page.getByText("Tap to hear it").waitFor({ timeout: 30000 });
+      await page.screenshot({ path: path.join(out, "11-preview-card-light.png") });
+      for (let i = 0; i < 20; i++) {
+        const start = page.getByRole("button", { name: "Start the 2-minute quiz" });
+        if (await start.isVisible().catch(() => false)) {
+          await start.click();
+          break;
+        }
+        await page.getByRole("button", { name: "Next", exact: true }).click();
+        await page.waitForTimeout(250);
+      }
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: path.join(out, "12-preview-quiz-light.png") });
+      const previewDone = await answerAll("Preview done");
+      await page.screenshot({ path: path.join(out, "13-preview-done-light.png") });
+      await page.waitForTimeout(1500);
+      const { data: runs } = await admin.from("preview_runs").select("score, total").eq("user_id", userId);
+      const okPreview = previewDone && (runs?.length ?? 0) === 1 && (runs![0].total ?? 0) > 0;
+      console.log(`${okPreview ? "✓" : "✗"} Tonight's Preview → quiz → saved (${runs?.[0]?.score}/${runs?.[0]?.total})`);
+      if (!okPreview) errors.push("preview flow failed");
+
+      await page.goto(`${APP}/class/${classId}/practice`);
+      await page.getByText("Hear & pick").waitFor({ timeout: 30000 });
+      await page.screenshot({ path: path.join(out, "14-practice-light.png") });
+      await page.getByText("Hear & pick").click();
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: path.join(out, "15-hear-pick-light.png") });
+      const practiceDone = await answerAll("Back to Practice");
+      await page.waitForTimeout(1500);
+      const { count } = await admin.from("progress").select("card_id", { count: "exact", head: true }).eq("user_id", userId);
+      const okPractice = practiceDone && (count ?? 0) > 0;
+      console.log(`${okPractice ? "✓" : "✗"} Practice hear & pick → progress saved (${count} cards)`);
+      if (!okPractice) errors.push("practice flow failed");
+
+      await page.goto(`${APP}/class/${classId}`);
+      await page.getByRole("button", { name: "Partly" }).click();
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: path.join(out, "16-today-after-light.png"), fullPage: true });
+      const { data: check } = await admin.from("checkins").select("answer").eq("user_id", userId);
+      const okCheck = check?.[0]?.answer === "partly";
+      console.log(`${okCheck ? "✓" : "✗"} after-class check-in saved (${check?.[0]?.answer})`);
+      if (!okCheck) errors.push("check-in failed");
+    }
+
     console.log(`${scheme}: ${errors.length ? errors.join(" | ") : "every screen fits the phone width, no console errors"}`);
     await context.close();
   }

@@ -57,6 +57,7 @@ export function Section({ title, children, action }: { title: string; children: 
 const icons = {
   today: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
   lessons: "M4 5h16M4 12h16M4 19h10",
+  practice: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6",
   words: "M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z",
 };
 
@@ -138,6 +139,7 @@ export function Screen({
         >
           <Tab to={`/class/${classId}`} label="Today" icon="today" end />
           <Tab to={`/class/${classId}/lessons`} label="Lessons" icon="lessons" />
+          <Tab to={`/class/${classId}/practice`} label="Practice" icon="practice" />
           <Tab to={`/class/${classId}/words`} label="My Words" icon="words" />
         </nav>
       )}

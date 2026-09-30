@@ -69,3 +69,61 @@ export function shortVowelSyllables(): Syllable[] {
     })),
   );
 }
+
+export const LONG_VOWELS = [
+  { name: "long aa", vowel: "aa", mark: "َ", carrier: "ا" },
+  { name: "long uu", vowel: "uu", mark: "ُ", carrier: "و" },
+  { name: "long ii", vowel: "ii", mark: "ِ", carrier: "ي" },
+] as const;
+
+/** 28 letters × 3 long vowels: بَا بُو بِي … (the book teaches these with each letter). */
+export function longVowelSyllables(): Syllable[] {
+  return LETTERS.flatMap((l) =>
+    LONG_VOWELS.map((v) => ({
+      key: l.key,
+      letter: l.letter,
+      vowel: v.name,
+      // Hamza + long aa is written آ; the others sit on alif as usual.
+      text: l.letter === "ء" ? (v.vowel === "aa" ? "آ" : v.vowel === "ii" ? "إِي" : "أُو") : l.carrier + v.mark + v.carrier,
+      pron: l.sound + v.vowel,
+    })),
+  );
+}
+
+/** Built-in Level 1 cards: every letter's name, short and long sounds, keyed for lookup. */
+export function builtinSoundCards() {
+  return [
+    ...LETTERS.map((l) => ({
+      builtin_key: `name-${l.key}`,
+      kind: "letter",
+      arabic: l.letter,
+      tts_text: l.name,
+      pronunciation: l.namePron,
+      english: `the letter ${l.namePron.replace(/-/g, "").toLowerCase()}`,
+    })),
+    ...shortVowelSyllables().map((s) => ({
+      builtin_key: `syl-${s.key}-${s.vowel}`,
+      kind: "syllable",
+      arabic: s.text,
+      tts_text: s.text,
+      pronunciation: s.pron,
+      english: `${s.letter} with ${s.vowel}`,
+    })),
+    ...longVowelSyllables().map((s) => ({
+      builtin_key: `syl-${s.key}-${s.vowel.replace(" ", "-")}`,
+      kind: "syllable",
+      arabic: s.text,
+      tts_text: s.text,
+      pronunciation: s.pron,
+      english: `${s.letter} with a ${s.vowel}`,
+    })),
+  ];
+}
+
+/** Book lesson focus (ب, هـ, أ …) → letter key, or undefined for non-letter lessons. */
+export function letterKeyForFocus(focus: string | null | undefined): string | undefined {
+  if (!focus) return undefined;
+  const bare = focus.replace(/[ـً-ْ\s]/g, "");
+  if (["ء", "أ", "إ", "ا", "آ"].includes(bare)) return "hamza";
+  return LETTERS.find((l) => l.letter === bare)?.key;
+}

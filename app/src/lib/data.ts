@@ -103,3 +103,10 @@ export async function correctCard(cardId: string, changes: CardChanges, reason: 
 export async function dismissReport(reportId: string) {
   return callFunction<{ ok: true }>("card-review", { action: "dismiss", report_id: reportId });
 }
+
+/** The lesson after the class's current one (Tonight's Preview is for the next class). */
+export function nextLesson(lessons: Lesson[], currentId: string | null): Lesson | undefined {
+  const teaching = lessons.filter((l) => l.kind !== "front_matter");
+  const i = teaching.findIndex((l) => l.id === currentId);
+  return teaching[i + 1] ?? teaching[i] ?? teaching[0];
+}

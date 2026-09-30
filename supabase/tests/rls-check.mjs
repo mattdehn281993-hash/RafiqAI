@@ -88,7 +88,8 @@ const count = (n) => (r) => r && Number(r.rows[0].n) === n;
 // Outsider sees nothing shared except built-in cards.
 await expect("outsider cannot see the book", () => as(C, "select * from books"), rows(0));
 await expect("outsider cannot see lessons", () => as(C, "select * from lessons"), rows(0));
-await expect("outsider cannot see book cards (only built-in)", () => as(C, "select * from current_cards"), rows(1));
+await expect("outsider cannot see book cards", () => as(C, "select * from current_cards where book_id is not null"), rows(0));
+await expect("outsider can see built-in course cards", () => as(C, "select count(*)::int n from current_cards where book_id is null"), (r) => r && r.rows[0].n >= 1);
 
 // Student joins with the invite code.
 await expect("student before joining sees no classes", () => as(B, "select * from classes"), rows(0));
@@ -102,7 +103,7 @@ await expect("student is a student, not an editor", () => as(B, `select role fro
 await expect("student sees the book", () => as(B, "select * from books"), rows(1));
 await expect("student sees lessons", () => as(B, "select * from lessons"), rows(1));
 await expect("student sees page + page cards", () => as(B, "select * from page_cards"), rows(1));
-await expect("student sees book and built-in cards", () => as(B, "select * from current_cards"), rows(2));
+await expect("student sees the book's cards", () => as(B, "select * from current_cards where book_id is not null"), rows(1));
 
 // Student cannot change shared content.
 await expect("student cannot insert cards", () => as(B, `insert into cards (book_id, kind) values ('${ids.book}', 'word')`), denied);
@@ -183,6 +184,17 @@ await db.exec(`reset role; select set_config('request.jwt.claim.sub', '${B}', fa
 const report2 = (await db.query("select id from reports where status = 'open'")).rows[0].id;
 await expect("student cannot dismiss a report", () => db.query(`select dismiss_report('${B}', '${report2}')`), (r, e) => !!e);
 await expect("editor dismisses a report", () => db.query(`select dismiss_report('${A}', '${report2}')`).then(() => db.query(`select status from reports where id = '${report2}'`)), (r) => r && r.rows[0]?.status === "rejected");
+
+// Built-in course cards (seeded by migration).
+await expect("196 built-in sound cards seeded", () => db.query("select count(*)::int n from cards where builtin_key is not null and level = 1"), count(196));
+await expect("letter name card says the name", () => db.query("select tts_text, pronunciation from current_cards c join cards k using (id) where k.builtin_key = 'name-b'"), (r) => r && r.rows[0]?.tts_text === "بَاءْ" && r.rows[0]?.pronunciation === "baaʾ");
+await expect("long vowel card", () => db.query("select arabic_full, pronunciation from current_cards c join cards k using (id) where k.builtin_key = 'syl-b-long-aa'"), (r) => r && r.rows[0]?.arabic_full === "بَا" && r.rows[0]?.pronunciation === "baa");
+await expect("hamza long aa is آ", () => db.query("select arabic_full from current_cards c join cards k using (id) where k.builtin_key = 'syl-hamza-long-aa'"), (r) => r && r.rows[0]?.arabic_full === "آ");
+
+// Preview runs are private.
+await expect("student records a preview run", () => as(B, `insert into preview_runs (lesson_id, score, total) values ('${ids.lesson}', 7, 10) returning 1`), rows(1));
+await expect("editor cannot see student's preview runs", () => as(A, "select * from preview_runs"), rows(0));
+await expect("outsider cannot log a preview for a lesson they can't see", () => as(C, `insert into preview_runs (lesson_id, score, total) values ('${ids.lesson}', 1, 1)`), denied);
 
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");

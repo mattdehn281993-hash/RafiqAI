@@ -77,9 +77,9 @@ The roadmap diagram in the PRD did not survive the markdown export, so this orde
 - [x] Today's Class home screen, "We covered up to here" (editors)
 - [x] My Words
 - [x] Needs checking + retake, Report a mistake
-- [ ] Card versions from corrections + editor review queue (reports are stored; no editor screen yet)
+- [x] Card versions from corrections + editor review queue (Reports screen; editors can Edit any card)
 - [ ] Own email sender (SMTP) so sign-in emails carry a 6-digit code and aren't limited to 2 per hour
-- [ ] Host the app on HTTPS so it installs on the phone and works outside the home Wi-Fi
+- [ ] Host the app on HTTPS so it installs on the phone and works outside the home Wi-Fi (`npm run app:deploy` ready; needs `VERCEL_TOKEN`)
 - [ ] **Gate 1** on the real textbook (checklist in PRD), in real class use
 
 Tools: `npm run smoke` (end-to-end against the live functions), `npm run ui:screens` (phone screenshots; fails if any screen is wider than the phone).
@@ -88,10 +88,12 @@ Limits to watch: free-plan functions stop at 150 s. Lesson pages take 20–75 s;
 
 ### Phase 2 — Arrive prepared
 
-- [ ] Tonight's Preview + 2-minute quiz
-- [ ] Learn cards levels 1–4 (seed content, human-reviewed), excluding letter shapes
-- [ ] Practice: hear-and-pick, see-and-say, flip cards
-- [ ] Review queue with spaced repetition
+- [x] Tonight's Preview + 2-minute quiz (next lesson's letter name, short and long sounds from built-in cards, plus words from saved pages; scores in `preview_runs`)
+- [x] Learn cards Level 1: 196 built-in cards (28 letter names, 84 short and 84 long vowel sounds), in book order
+- [ ] Learn cards levels 2–4 (first words, classroom Arabic, everyday phrases), human-reviewed
+- [x] Practice: hear-and-pick (look-alike wrong answers: same letter other vowel, ب/ت/ث), see-it-say-it flashcards, This lesson, My Words
+- [x] Review queue with spaced repetition (Today's review: due cards + new saved words; right answers wait 1→30 days, misses return in 10 min)
+- [x] After-class check-in (yes / partly / no) on Today
 - [ ] Offline lesson download with ready indicator and retry
 
 ### Phase 3 — Complete v1

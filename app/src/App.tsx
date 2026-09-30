@@ -31,6 +31,8 @@ export const router = createBrowserRouter([
       { path: "/class/:classId/snap", lazy: () => import("./routes/Snap").then((m) => ({ Component: m.Snap })) },
       { path: "/class/:classId/page/:pageId", lazy: () => import("./routes/PageView").then((m) => ({ Component: m.PageView })) },
       { path: "/class/:classId/invite", lazy: () => import("./routes/Invite").then((m) => ({ Component: m.Invite })) },
+      { path: "/class/:classId/preview", lazy: () => import("./routes/Preview").then((m) => ({ Component: m.Preview })) },
+      { path: "/class/:classId/practice", lazy: () => import("./routes/PracticeHome").then((m) => ({ Component: m.PracticeHome })) },
       { path: "/class/:classId/reports", lazy: () => import("./routes/Reports").then((m) => ({ Component: m.Reports })) },
     ],
   },

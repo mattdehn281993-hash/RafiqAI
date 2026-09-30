@@ -1,11 +1,12 @@
 // Today's Class: the lesson the class is on, its saved pages, the teacher's
 // classroom instructions, and "Snap a page" in thumb reach.
 import { useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArabicText } from "../components/ArabicText";
 import { Button, ErrorNote, RowLink, Screen, Section, Spinner } from "../components/ui";
 import { playCard, prepareAudio } from "../lib/audio";
-import { getClass, lessonsOf, pagesOf } from "../lib/data";
+import { getClass, lessonsOf, nextLesson, pagesOf } from "../lib/data";
 import { supabase } from "../lib/supabase";
 import type { Card } from "../lib/types";
 import { must, useAsync } from "../lib/useAsync";
@@ -22,7 +23,18 @@ export function Today() {
       classroomInstructions(cls.book_id),
       cls.role === "editor" ? openReportCount(cls.book_id) : Promise.resolve(0),
     ]);
-    return { cls, lessons, units, pages, instructions, reports };
+    const today = new Date().toISOString().slice(0, 10);
+    const [runs, checkin] = await Promise.all([
+      supabase.from("preview_runs").select("lesson_id, score, total, completed_at").order("completed_at", { ascending: false }).limit(20),
+      cls.current_lesson_id
+        ? supabase.from("checkins").select("answer").eq("lesson_id", cls.current_lesson_id).eq("checkin_date", today).maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+    return {
+      cls, lessons, units, pages, instructions, reports,
+      previewRuns: (must(runs) as { lesson_id: string; score: number; total: number }[]),
+      checkin: (checkin.data as { answer: string } | null)?.answer ?? null,
+    };
   }, [classId]);
 
   useEffect(() => rememberClass(classId), [classId]);
@@ -33,12 +45,14 @@ export function Today() {
   if (loading && !data) return <Screen title="Today" classId={classId}><Spinner /></Screen>;
   if (error || !data) return <Screen title="Today" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
-  const { cls, lessons, units, pages, instructions, reports } = data;
+  const { cls, lessons, units, pages, instructions, reports, previewRuns, checkin } = data;
   const current = lessons.find((l) => l.id === cls.current_lesson_id) ?? lessons.find((l) => l.kind !== "front_matter");
   const teaching = lessons.filter((l) => l.kind !== "front_matter");
   const number = current ? teaching.indexOf(current) + 1 : 0;
   const unit = units.find((u) => u.id === current?.unit_id);
   const lessonPages = pages.filter((p) => p.lesson_id === current?.id);
+  const upNext = nextLesson(lessons, cls.current_lesson_id);
+  const previewed = previewRuns.find((r) => r.lesson_id === upNext?.id);
 
   return (
     <Screen
@@ -77,6 +91,32 @@ export function Today() {
           )}
         </div>
       )}
+
+      {upNext && (
+        <Link
+          to={`/class/${classId}/preview`}
+          className="mt-3 flex min-h-16 items-center gap-3 rounded-3xl border border-border bg-surface p-4 active:bg-soft"
+        >
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent" aria-hidden>
+            <svg viewBox="0 0 24 24" className="size-6" fill="currentColor">
+              <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">Tonight's Preview</span>
+            <span className="block truncate text-sm text-muted">
+              {previewed ? `Done: ${previewed.score}/${previewed.total}. Tap to go again` : `${upNext.title_en ?? upNext.title_ar} · about 5 minutes`}
+            </span>
+          </span>
+          {upNext.focus && upNext.focus.length <= 2 && (
+            <span className="font-arabic text-4xl text-accent" lang="ar">
+              {upNext.focus}
+            </span>
+          )}
+        </Link>
+      )}
+
+      <CheckIn lessonId={cls.current_lesson_id} answer={checkin} />
 
       <Section title={`Pages saved for this lesson (${lessonPages.length})`}>
         {lessonPages.length === 0 ? (
@@ -132,6 +172,46 @@ export function Today() {
         Sign out
       </button>
     </Screen>
+  );
+}
+
+/** After class: "I followed most of today's lesson" (success metric). */
+function CheckIn({ lessonId, answer }: { lessonId: string | null; answer: string | null }) {
+  const [value, setValue] = useState(answer);
+  const [error, setError] = useState<string | null>(null);
+  if (!lessonId) return null;
+
+  async function choose(a: "yes" | "partly" | "no") {
+    const before = value;
+    setValue(a);
+    setError(null);
+    const { error } = await supabase
+      .from("checkins")
+      .upsert({ lesson_id: lessonId, answer: a, checkin_date: new Date().toISOString().slice(0, 10) }, { onConflict: "user_id,lesson_id,checkin_date" });
+    if (error) {
+      setValue(before);
+      setError(error.message);
+    }
+  }
+
+  const labels = { yes: "Yes", partly: "Partly", no: "Not really" } as const;
+  return (
+    <div className="mt-3 rounded-3xl bg-surface p-4">
+      <p className="text-sm font-semibold">After class: did you follow most of today's lesson?</p>
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {(Object.keys(labels) as (keyof typeof labels)[]).map((k) => (
+          <button
+            key={k}
+            onClick={() => choose(k)}
+            aria-pressed={value === k}
+            className={`min-h-11 rounded-xl border text-sm font-medium ${value === k ? "border-accent bg-accent-soft text-accent" : "border-border"}`}
+          >
+            {labels[k]}
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-2 text-sm text-bad">{error}</p>}
+    </div>
   );
 }
 
