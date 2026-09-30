@@ -79,7 +79,7 @@ The roadmap diagram in the PRD did not survive the markdown export, so this orde
 - [x] Needs checking + retake, Report a mistake
 - [x] Card versions from corrections + editor review queue (Reports screen; editors can Edit any card)
 - [ ] Own email sender (SMTP) so sign-in emails carry a 6-digit code and aren't limited to 2 per hour
-- [ ] Host the app on HTTPS so it installs on the phone and works outside the home Wi-Fi (`npm run app:deploy` ready; needs `VERCEL_TOKEN`)
+- [x] Hosted on Vercel from GitHub (auto-deploys on push to `main`): https://rafiq-ai-chi.vercel.app. Sign-in redirects point there (`npm run auth:config -- https://rafiq-ai-chi.vercel.app`); `APP_URL=… npm run ui:screens` passes against the live site
 - [ ] **Gate 1** on the real textbook (checklist in PRD), in real class use
 
 Tools: `npm run smoke` (end-to-end against the live functions), `npm run ui:screens` (phone screenshots; fails if any screen is wider than the phone).

@@ -2,6 +2,7 @@
 // uses the real Book Map and page 8 from the Phase 0 runs. Cleans up afterwards.
 //
 //   (dev server running on :5173)  npm run ui:screens -- <output dir>
+//   against the live site:          APP_URL=https://rafiq-ai-chi.vercel.app npm run ui:screens -- <dir>
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,7 +13,7 @@ fs.mkdirSync(out, { recursive: true });
 const URL = process.env.SUPABASE_URL!;
 const ref = process.env.SUPABASE_PROJECT_REF!;
 const admin = createClient(URL, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
-const APP = "http://localhost:5173";
+const APP = process.env.APP_URL ?? "http://localhost:5173"; // e.g. APP_URL=https://rafiq-ai-chi.vercel.app
 
 const map = JSON.parse(fs.readFileSync("spikes/page-reading/out/contents-20260930_001620/book-map.json", "utf8")).map;
 const run = "spikes/page-reading/out/2026-09-30_032134";
