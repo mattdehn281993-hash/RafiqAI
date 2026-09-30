@@ -6,6 +6,7 @@ import type { Card } from "./types.ts";
 const card = (id: string, arabic: string, pron: string, kind = "syllable", english = pron): Card => ({
   id, book_id: null, kind, current_version: 1, arabic_printed: arabic, arabic_full: arabic, tts_text: arabic,
   pronunciation: pron, english, sound_note: null, needs_checking: false, needs_checking_reason: null,
+  usage: null,
 });
 
 const pool = [

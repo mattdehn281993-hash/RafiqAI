@@ -14,6 +14,31 @@ export const ITEM_KINDS = [
   "other",
 ] as const;
 
+/**
+ * Speaking practice: a tiny exchange that shows how a textbook word is used.
+ * Created after a page is saved (teach-page), stored apart from the card.
+ */
+export const CardUsage = z.object({
+  context: z.string().describe("A short English situation, such as 'You are pointing at a book in class.'"),
+  prompt_arabic: z.string().describe("What the other person says, fully vowelled"),
+  prompt_pronunciation: z.string().describe("Easy pronunciation of the prompt"),
+  prompt_english: z.string().describe("Plain English meaning of the prompt"),
+  response_arabic: z.string().describe("A natural response containing the target item, fully vowelled"),
+  response_pronunciation: z.string().describe("Easy pronunciation of the response"),
+  response_english: z.string().describe("Plain English meaning of the response"),
+  tip: z.string().describe("One short explanation of the reusable sentence pattern"),
+});
+
+export type CardUsage = z.infer<typeof CardUsage>;
+
+/** Kinds of card worth practising in conversation. */
+export const CONVERSATIONAL_KINDS = ["word", "phrase", "sentence"] as const;
+
+/** A complete conversation: every field filled in (editors can't save a blank one). */
+export function isCompleteUsage(usage: CardUsage): boolean {
+  return Object.values(usage).every((value) => value.trim().length > 0);
+}
+
 export const PageItem = z.object({
   order: z.number().int().describe("1-based reading order: rows top to bottom, right to left within a row"),
   row: z.number().int().describe("1-based visual row on the page, top to bottom"),

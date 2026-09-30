@@ -27,9 +27,10 @@ The page photo is sent straight from the phone to `explain-page` and is never wr
 1. **AI-added vowel marks are detected in code, not self-reported.** Claude returns each item twice: `arabic_printed` (exactly the marks visible on the page) and `arabic_full` (every mark filled in). A mark-by-mark diff in `shared/harakat.ts` finds which marks were added. If the two versions disagree on the letters themselves, or the full version drops a printed mark, the item is flagged "Needs checking".
 2. **Added marks shown lighter via two stacked layers.** Browsers can't reliably colour a single combining mark. The UI draws the full text in a light colour, then the printed-only text in full colour exactly on top. Marks don't change letter widths, so the layers line up and only the added marks show through as light.
 3. **Audio always matches the easy pronunciation.** Each card stores `tts_text`: the exact fully-vowelled pause form sent to ElevenLabs. `pronunciation` is written from `tts_text`, not from the display text.
-4. **Audio deduplicated by content hash.** The storage path is `hash(tts_text + voice_id + model_id)`. The same word on two pages shares one file, and a correction yields new text and therefore new audio automatically.
-5. **Letter names vs letter sounds.** A bare letter (ب) is a `letter` card whose `tts_text` is its spelled-out name (بَاء); a letter with a vowel (بَ) is a `syllable` card. Separate cards, separate audio (PRD pronunciation policy).
-6. **Slow audio** = the same file played at `playbackRate ≈ 0.7` with `preservesPitch`.
+4. **Reference and teaching content stay separate.** Scanned fields reproduce the textbook exactly. A nullable `usage` mini-conversation adds a situation, another speaker's line, a model response containing the target, and one reusable pattern. Students answer aloud before revealing it, so the page becomes active speaking practice without presenting generated examples as printed textbook content.
+5. **Audio deduplicated by content hash.** The storage path is `hash(tts_text + voice_id + model_id)`. The same word on two pages shares one file, and a correction yields new text and therefore new audio automatically.
+6. **Letter names vs letter sounds.** A bare letter (ب) is a `letter` card whose `tts_text` is its spelled-out name (بَاء); a letter with a vowel (بَ) is a `syllable` card. Separate cards, separate audio (PRD pronunciation policy).
+7. **Slow audio** = the same file played at `playbackRate ≈ 0.7` with `preservesPitch`.
 
 ## Data model
 
@@ -73,7 +74,8 @@ The roadmap diagram in the PRD did not survive the markdown export, so this orde
 - [x] Supabase project, schema, RLS, invite-only access (invite codes), classes and memberships (`npm run test:db`: 47 checks)
 - [x] Book Map (`read-contents`, low effort: 64 s), lesson list, class position
 - [x] Page Helper (`explain-page` + `save-page`) with check/edit step; photo discarded after saving
-- [x] Audio (`get-audio`), normal + slow, cached per voice + model + text
+- [x] Speaking practice: a page's words, phrases and sentences become short call-and-response situations with a reusable pattern, created on demand (`teach-page`) and stored apart from the textbook cards (`card_usages`), so cards and their versions never change; editors can edit or remove them
+- [x] Audio (`get-audio`), normal + slow, cached per voice + model + text. Voice model: `eleven_v3` (2026-09-30). Note: v3 clips for single sounds and words run 3–4× longer than v2 (بَ 2.4 s vs 0.6 s); phrases are the same length
 - [x] Today's Class home screen, "We covered up to here" (editors)
 - [x] My Words
 - [x] Needs checking + retake, Report a mistake

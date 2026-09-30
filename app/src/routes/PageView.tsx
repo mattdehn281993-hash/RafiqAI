@@ -1,14 +1,18 @@
 // A saved page: every card in the page's own layout (rows, right to left).
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { CorrectCardSheet, Sheet } from "../components/CardEditor";
 import { CardTile } from "../components/CardTile";
+import { ContextPractice } from "../components/ContextPractice";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { forgetAudio, prepareAudio } from "../lib/audio";
-import { correctCard, getClass, lessonsOf, pageCards, rowsOf, savedCardIds, setPageInfo, toggleSaved } from "../lib/data";
-import { supabase } from "../lib/supabase";
+import { getClass, lessonsOf, pageCards, rowsOf, saveCardEdits, savedCardIds, setPageInfo, toggleSaved } from "../lib/data";
+import { callFunction, supabase } from "../lib/supabase";
 import type { Lesson, PageRow, PlacedCard } from "../lib/types";
 import { must, useAsync } from "../lib/useAsync";
+
+/** Cards worth practising in conversation (matches the server's teach-page). */
+const CONVERSATIONAL = ["word", "phrase", "sentence"];
 
 /** Full width for single-item rows and long text; half width otherwise (page layout, right to left). */
 const wide = (row: { arabic_full: string }[], c: { arabic_full: string }) => row.length === 1 || c.arabic_full.length > 24;
@@ -27,6 +31,12 @@ export function PageView() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlacedCard | null>(null);
   const [editingPage, setEditingPage] = useState(false);
+  // Practice mode is part of the address, so the back arrow and the phone's back
+  // gesture both return to the page.
+  const [params, setParams] = useSearchParams();
+  const practising = params.get("practice") === "1";
+  const [teaching, setTeaching] = useState(false);
+  const [teachError, setTeachError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -41,6 +51,36 @@ export function PageView() {
   if (error || !data) return <Screen title="Page" back={`/class/${classId}`} classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
   const { page, lesson, cards } = data;
+  const usable = cards.filter((card) => card.usage);
+  const missing = cards.filter((card) => CONVERSATIONAL.includes(card.kind) && !card.usage).length;
+
+  async function createPractice() {
+    setTeaching(true);
+    setTeachError(null);
+    try {
+      const result = await callFunction<{ saved: number; eligible: number }>("teach-page", { class_id: classId, page_id: pageId });
+      if (!result.saved) setTeachError("None of this page's words are used in everyday conversation, so there's no practice to create.");
+      reload();
+    } catch (err) {
+      setTeachError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setTeaching(false);
+    }
+  }
+
+  if (practising) {
+    return (
+      <Screen
+        title="Use it in conversation"
+        subtitle={lesson?.title_en ?? lesson?.title_ar ?? `Page ${page.page_number ?? ""}`}
+        back={`/class/${classId}/page/${pageId}`}
+        classId={classId}
+      >
+        {/* Self-graded speaking practice: kept out of the vocabulary review queue. */}
+        <ContextPractice cards={usable} />
+      </Screen>
+    );
+  }
 
   async function toggle(cardId: string) {
     const was = saved.has(cardId);
@@ -77,7 +117,31 @@ export function PageView() {
         </div>
       )}
       {page.summary && <p className="text-sm text-muted">{page.summary}</p>}
-      <p className="mt-1 text-xs text-muted">Tap a card to hear it. Light vowel marks were added by Rafiq.</p>
+      {usable.length > 0 && (
+        <section className="mt-3 rounded-3xl bg-accent-soft p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-accent">Don’t just memorise it</p>
+          <p className="mt-1 text-lg font-bold">Use this page in conversation</p>
+          <p className="mt-1 text-sm">Respond to {usable.length} realistic situation{usable.length === 1 ? "" : "s"} out loud, then compare with a model answer.</p>
+          <Button className="mt-3 w-full" onClick={() => setParams({ practice: "1" })}>Start speaking practice</Button>
+        </section>
+      )}
+      {missing > 0 && (
+        <section className={`mt-3 rounded-3xl p-4 ${usable.length ? "border border-border bg-surface" : "bg-accent-soft"}`}>
+          {usable.length === 0 && <p className="text-xs font-semibold uppercase tracking-wider text-accent">Turn words into speech</p>}
+          <p className="mt-1 text-lg font-bold">{usable.length ? `Practice for ${missing} more word${missing === 1 ? "" : "s"}` : "Create conversation practice"}</p>
+          <p className="mt-1 text-sm">Rafiq puts this page's useful words into short situations so you can answer out loud. Takes about half a minute.</p>
+          {teachError && <p className="mt-2 rounded-xl bg-warn-bg p-2 text-sm text-warn">{teachError}</p>}
+          <Button className="mt-3 w-full" variant={usable.length ? "secondary" : "primary"} disabled={teaching} onClick={createPractice}>
+            {teaching ? "Creating practice…" : "Create speaking practice"}
+          </Button>
+        </section>
+      )}
+      <div className="mt-4 flex items-center gap-3">
+        <span className="h-px flex-1 bg-border" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted">Book reference</span>
+        <span className="h-px flex-1 bg-border" />
+      </div>
+      <p className="mt-2 text-xs text-muted">Tap a card to hear it. Light vowel marks were added by Rafiq.</p>
       {audioError && <p className="mt-2 rounded-xl bg-warn-bg p-2 text-sm text-warn">{audioError}</p>}
 
       <div className="mt-3 flex flex-col gap-2">
@@ -113,9 +177,10 @@ export function PageView() {
       {editing && (
         <CorrectCardSheet
           initial={editing}
+          withUsage={CONVERSATIONAL.includes(editing.kind)}
           onClose={() => setEditing(null)}
           onSave={async (changes, reason) => {
-            await correctCard(editing.id, changes, reason);
+            await saveCardEdits(editing.id, changes, reason);
             forgetAudio(editing.id);
             setEditing(null);
             reload();

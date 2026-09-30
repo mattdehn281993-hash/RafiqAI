@@ -32,6 +32,17 @@ export type PageRow = {
   scanned_at: string;
 };
 
+export type CardUsage = {
+  context: string;
+  prompt_arabic: string;
+  prompt_pronunciation: string;
+  prompt_english: string;
+  response_arabic: string;
+  response_pronunciation: string;
+  response_english: string;
+  tip: string;
+};
+
 export type Card = {
   id: string;
   book_id: string | null;
@@ -45,6 +56,7 @@ export type Card = {
   pronunciation: string;
   english: string;
   sound_note: string | null;
+  usage: CardUsage | null;
   needs_checking: boolean;
   needs_checking_reason: string | null;
 };

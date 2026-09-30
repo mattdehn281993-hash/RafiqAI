@@ -4,7 +4,7 @@ import { env } from "./http.ts";
 export function voiceConfig() {
   return {
     voiceId: env("ELEVENLABS_VOICE_ID"),
-    modelId: Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_multilingual_v2",
+    modelId: Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_v3",
   };
 }
 

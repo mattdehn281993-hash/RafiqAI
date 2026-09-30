@@ -217,6 +217,24 @@ await expect("editor sets a missing page number; lesson follows", () => db.query
 await expect("student can't change page info", () => db.query(`select update_page_info('${B}', '${noNumber}', 10, null)`), (r, e) => !!e && /Only editors/.test(e.message));
 await expect("app can't call set_book_map directly", () => as(C, `select set_book_map('${C}', '${emptyClass}', '{}'::jsonb)`), denied);
 
+// Speaking practice lives beside cards, never changes them, and only editors edit it.
+const usage = (reply) => JSON.stringify({ context: "In class", prompt_arabic: "مَا هٰذَا؟", prompt_pronunciation: "maa HAA-dhaa", prompt_english: "What is this?", response_arabic: reply, response_pronunciation: "HAA-dhaa ki-TAAB", response_english: "This is a book", tip: "هٰذَا + noun" }).replace(/'/g, "''");
+const versionBefore = (await db.query(`select current_version as v from cards where id = '${card1}'`)).rows[0].v;
+await expect("member adds practice; JSON null and non-objects are skipped", () => db.query(`select save_page_usages('${B}', '00000000-0000-0000-0000-0000000000f1', jsonb_build_array(
+  jsonb_build_object('card_id', '${card1}', 'usage', '${usage("هٰذَا كِتَابٌ")}'::jsonb),
+  jsonb_build_object('card_id', '${card1}', 'usage', 'null'::jsonb),
+  jsonb_build_object('card_id', '00000000-0000-0000-0000-0000000000c2', 'usage', '${usage("x")}'::jsonb)
+)) as n`), (r) => r && r.rows[0].n === 1);
+await expect("adding practice doesn't change the card or its version", () => db.query(`select current_version as v from cards where id = '${card1}'`), (r) => r && r.rows[0].v === versionBefore);
+await expect("students see the practice on the card", () => as(B, `select usage->>'response_arabic' r from current_cards where id = '${card1}'`), (r) => r && r.rows[0]?.r === "هٰذَا كِتَابٌ");
+await expect("existing practice isn't overwritten by a second generation", () => db.query(`select save_page_usages('${B}', '00000000-0000-0000-0000-0000000000f1', jsonb_build_array(jsonb_build_object('card_id', '${card1}', 'usage', '${usage("other")}'::jsonb))) as n`), (r) => r && r.rows[0].n === 0);
+await expect("outsider can't add practice to the page", () => db.query(`select save_page_usages('${C}', '00000000-0000-0000-0000-0000000000f1', '[]'::jsonb)`), (r, e) => !!e && /cannot add practice/.test(e.message));
+await expect("student can't edit practice", () => db.query(`select set_card_usage('${B}', '${card1}', 'null'::jsonb)`), (r, e) => !!e && /Only editors/.test(e.message));
+await expect("editor removes practice with JSON null", () => db.query(`select set_card_usage('${A}', '${card1}', 'null'::jsonb)`).then(() => db.query(`select usage from current_cards where id = '${card1}'`)), (r) => r && r.rows[0].usage === null);
+await expect("editor sets practice", () => db.query(`select set_card_usage('${A}', '${card1}', '${usage("هٰذَا كِتَابِي")}'::jsonb)`).then(() => db.query(`select source, usage->>'response_arabic' r from card_usages where card_id = '${card1}'`)), (r) => r && r.rows[0]?.source === "editor" && r.rows[0]?.r === "هٰذَا كِتَابِي");
+await expect("outsider can't read another class's practice", () => as(C, `select * from card_usages where card_id = '${card1}'`), rows(0));
+await expect("app can't write practice directly", () => as(B, `insert into card_usages (card_id, usage) values ('${card1}', '{}'::jsonb)`), denied);
+
 // Anonymous (not signed in).
 await db.exec("reset role; set role anon;");
 await expect("anonymous sees no books", () => db.query("select * from books"), rows(0));

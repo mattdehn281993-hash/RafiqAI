@@ -6,7 +6,7 @@ import { CorrectCardSheet } from "../components/CardEditor";
 import { CardTile } from "../components/CardTile";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { forgetAudio } from "../lib/audio";
-import { cardsByIds, correctCard, dismissReport, getClass } from "../lib/data";
+import { cardsByIds, dismissReport, getClass, saveCardEdits } from "../lib/data";
 import { supabase } from "../lib/supabase";
 import { must, useAsync } from "../lib/useAsync";
 
@@ -76,10 +76,11 @@ export function Reports() {
       {current && (
         <CorrectCardSheet
           initial={current.card}
+          withUsage={["word", "phrase", "sentence"].includes(current.card.kind)}
           message={current.message}
           onClose={() => setFixing(null)}
           onSave={async (changes, reason) => {
-            await correctCard(current.card_id, changes, reason || `report: ${current.message}`, current.id);
+            await saveCardEdits(current.card_id, changes, reason || `report: ${current.message}`, current.id);
             forgetAudio(current.card_id);
             setFixing(null);
             reload();

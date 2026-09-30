@@ -165,6 +165,31 @@ try {
       if (!ok) errors.push("unnumbered page flow failed");
     }
 
+    // Speaking practice: create it for the page, practise, come back. Cards don't change.
+    if (scheme === "light") {
+      const { data: versionsBefore } = await admin.from("cards").select("id, current_version").in("id", cardIds);
+      await page.goto(`${APP}/class/${classId}/page/${pageId}`);
+      await page.getByRole("button", { name: "Create speaking practice" }).click();
+      const created = await page.getByRole("button", { name: "Start speaking practice" }).waitFor({ timeout: 120000 }).then(() => true, () => false);
+      const { data: versionsAfter } = await admin.from("cards").select("id, current_version").in("id", cardIds);
+      const unchanged = JSON.stringify(versionsBefore?.sort((a, b) => a.id.localeCompare(b.id))) === JSON.stringify(versionsAfter?.sort((a, b) => a.id.localeCompare(b.id)));
+      const { count: practised } = await admin.from("card_usages").select("card_id", { count: "exact", head: true }).in("card_id", cardIds);
+      await page.screenshot({ path: path.join(out, "22-practice-created-light.png") });
+      await page.getByRole("button", { name: "Start speaking practice" }).click();
+      const inPractice = new globalThis.URL(page.url()).searchParams.get("practice") === "1";
+      await page.getByRole("button", { name: "Reveal a model answer" }).click();
+      await page.screenshot({ path: path.join(out, "23-practice-light.png") });
+      const saidIt = page.getByRole("button", { name: "I said it" });
+      await saidIt.dblclick(); // a double tap counts once
+      const second = await page.getByText(/Conversation 2 of|responses felt comfortable/).first().textContent().catch(() => "");
+      const skippedOne = !/Conversation 3 of/.test(second ?? "");
+      await page.locator("header").getByRole("button", { name: "Back" }).click();
+      const backToPage = await page.getByText("Book reference").waitFor({ timeout: 15000 }).then(() => true, () => false);
+      const ok = created && unchanged && (practised ?? 0) > 0 && inPractice && skippedOne && backToPage;
+      console.log(`${ok ? "✓" : "✗"} speaking practice: created for ${practised} cards, card versions unchanged: ${unchanged}, in practice mode: ${inPractice}, double tap counted once: ${skippedOne}, back arrow returns: ${backToPage}`);
+      if (!ok) errors.push("speaking practice flow failed");
+    }
+
     // Letters tab: all 28 letters, tap one to open its name and sounds.
     if (scheme === "light") {
       await page.goto(`${APP}/class/${classId}/letters`);

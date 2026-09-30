@@ -87,7 +87,18 @@ export function rowsOf(cards: PlacedCard[]): PlacedCard[][] {
   return [...rows.entries()].sort(([a], [b]) => a - b).map(([, r]) => r.sort((a, b) => (a.col_index ?? 0) - (b.col_index ?? 0)));
 }
 
-export type CardChanges = Partial<Pick<Card, "arabic_printed" | "arabic_full" | "tts_text" | "pronunciation" | "english" | "sound_note" | "needs_checking" | "needs_checking_reason">>;
+export type CardChanges = Partial<Pick<Card, "arabic_printed" | "arabic_full" | "tts_text" | "pronunciation" | "english" | "sound_note" | "usage" | "needs_checking" | "needs_checking_reason">>;
+
+/**
+ * Editors: save an edit from the card editor. Text changes become a new card
+ * version (resolving the report, if any); the speaking practice conversation is
+ * saved on its own, since it isn't part of the textbook card.
+ */
+export async function saveCardEdits(cardId: string, changes: CardChanges, reason: string, reportId?: string) {
+  const { usage, ...text } = changes;
+  if (Object.keys(text).length) await correctCard(cardId, text, reason, reportId);
+  if ("usage" in changes) await callFunction<{ ok: true }>("card-review", { action: "usage", card_id: cardId, usage: usage ?? null });
+}
 
 /** Editors: save a correction as a new card version (optionally resolving a report). */
 export async function correctCard(cardId: string, changes: CardChanges, reason: string, reportId?: string) {

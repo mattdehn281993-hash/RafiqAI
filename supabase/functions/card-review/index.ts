@@ -3,8 +3,10 @@
 // POST { action: "dismiss", report_id }                           → { ok: true }
 // POST { action: "page", page_id, page_number, lesson_id }         → { ok: true }
 // POST { action: "book_map", class_id, map }                       → { filed_pages }
+// POST { action: "usage", card_id, usage | null }                  → { ok: true }  (null removes it)
 import * as z from "zod";
 import { BookMap } from "../_shared/read-contents.ts";
+import { CardUsage, isCompleteUsage } from "../_shared/card-schema.ts";
 import { body, handle, HttpError, json } from "../_edge/http.ts";
 
 const Changes = z
@@ -36,6 +38,11 @@ const Body = z.discriminatedUnion("action", [
     lesson_id: z.uuid().nullable(),
   }),
   z.object({ action: z.literal("book_map"), class_id: z.uuid(), map: BookMap }),
+  z.object({
+    action: z.literal("usage"),
+    card_id: z.uuid(),
+    usage: CardUsage.refine(isCompleteUsage, "Fill in every part of the conversation").nullable(),
+  }),
 ]);
 
 const editorError = (message: string) =>
@@ -54,6 +61,12 @@ Deno.serve(handle(async (req, ctx) => {
       p_page_number: input.page_number,
       p_lesson: input.lesson_id,
     });
+    if (error) throw editorError(error.message) ?? error;
+    return json({ ok: true });
+  }
+
+  if (input.action === "usage") {
+    const { error } = await ctx.admin.rpc("set_card_usage", { p_user: ctx.user.id, p_card: input.card_id, p_usage: input.usage });
     if (error) throw editorError(error.message) ?? error;
     return json({ ok: true });
   }

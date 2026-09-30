@@ -1,6 +1,8 @@
 // Editing a card's text. Used inline while checking a scanned page (before it is
-// saved) and in a bottom sheet when an editor corrects a saved card.
+// saved) and in a bottom sheet when an editor corrects a saved card. Editors can
+// also add, edit or remove the card's speaking practice conversation.
 import { useState, type ReactNode } from "react";
+import type { CardUsage } from "../lib/types";
 import { Button, ErrorNote } from "./ui";
 
 export type CardFields = {
@@ -10,13 +12,32 @@ export type CardFields = {
   pronunciation: string;
   english: string;
   sound_note: string | null;
+  /** Speaking practice (saved cards only); kept apart from the card's own text. */
+  usage?: CardUsage | null;
   needs_checking: boolean;
   needs_checking_reason: string | null;
 };
 
 type TextKey = "arabic_printed" | "arabic_full" | "tts_text" | "pronunciation" | "english";
 
-export function CardFieldsForm({ value, onChange }: { value: CardFields; onChange: (v: CardFields) => void }) {
+const EMPTY_USAGE: CardUsage = {
+  context: "", prompt_arabic: "", prompt_pronunciation: "", prompt_english: "",
+  response_arabic: "", response_pronunciation: "", response_english: "", tip: "",
+};
+
+/** Every part of the conversation filled in (a half-empty one is never saved). */
+export const usageComplete = (usage: CardUsage) => Object.values(usage).every((v) => v.trim().length > 0);
+
+export function CardFieldsForm({
+  value,
+  onChange,
+  withUsage = false,
+}: {
+  value: CardFields;
+  onChange: (v: CardFields) => void;
+  /** Show the speaking practice section (word, phrase and sentence cards). */
+  withUsage?: boolean;
+}) {
   const field = (key: TextKey, label: string, arabic = false) => (
     <label className="block">
       <span className="text-xs font-medium text-muted">{label}</span>
@@ -29,6 +50,18 @@ export function CardFieldsForm({ value, onChange }: { value: CardFields; onChang
       />
     </label>
   );
+  const usageField = (key: keyof CardUsage, label: string, arabic = false) => value.usage && (
+    <label className="block">
+      <span className="text-xs font-medium text-muted">{label}</span>
+      <input
+        dir={arabic ? "rtl" : "ltr"}
+        lang={arabic ? "ar" : "en"}
+        value={value.usage[key]}
+        onChange={(e) => onChange({ ...value, usage: { ...value.usage!, [key]: e.target.value } })}
+        className={`mt-0.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3 ${arabic ? "font-arabic text-xl" : ""}`}
+      />
+    </label>
+  );
   return (
     <div className="flex flex-col gap-2">
       {field("arabic_printed", "Arabic exactly as printed", true)}
@@ -36,6 +69,32 @@ export function CardFieldsForm({ value, onChange }: { value: CardFields; onChang
       {field("tts_text", "What the voice says", true)}
       {field("pronunciation", "Easy pronunciation")}
       {field("english", "English meaning")}
+      {withUsage && !value.usage && (
+        <button
+          type="button"
+          onClick={() => onChange({ ...value, usage: { ...EMPTY_USAGE } })}
+          className="min-h-11 rounded-xl border border-dashed border-border text-sm font-semibold text-accent"
+        >
+          Add a speaking practice conversation
+        </button>
+      )}
+      {withUsage && value.usage && (
+        <div className="flex flex-col gap-2 rounded-xl bg-soft p-3">
+          <p className="text-sm font-semibold">Speaking practice</p>
+          {usageField("context", "Situation")}
+          {usageField("prompt_arabic", "Other person says", true)}
+          {usageField("prompt_pronunciation", "Prompt pronunciation")}
+          {usageField("prompt_english", "Prompt meaning")}
+          {usageField("response_arabic", "Student replies", true)}
+          {usageField("response_pronunciation", "Reply pronunciation")}
+          {usageField("response_english", "Reply meaning")}
+          {usageField("tip", "Reusable pattern")}
+          {!usageComplete(value.usage) && <p className="text-xs text-warn">Fill in every part, or remove the conversation.</p>}
+          <button type="button" onClick={() => onChange({ ...value, usage: null })} className="min-h-11 text-sm font-semibold text-bad">
+            Remove this conversation
+          </button>
+        </div>
+      )}
       <label className="flex min-h-11 items-center gap-2">
         <input
           type="checkbox"
@@ -84,11 +143,13 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
 export function CorrectCardSheet({
   initial,
   message,
+  withUsage = false,
   onSave,
   onClose,
 }: {
   initial: CardFields;
   message?: string;
+  withUsage?: boolean;
   onSave: (changes: Partial<CardFields>, reason: string) => Promise<void>;
   onClose: () => void;
 }) {
@@ -97,6 +158,7 @@ export function CorrectCardSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const changes = changedFields(initial, value);
+  const incomplete = !!value.usage && !usageComplete(value.usage);
 
   async function save() {
     setBusy(true);
@@ -112,15 +174,15 @@ export function CorrectCardSheet({
   return (
     <Sheet title="Correct this card" onClose={onClose}>
       {message && <p className="mb-3 rounded-xl bg-warn-bg p-3 text-sm text-warn">Report: “{message}”</p>}
-      <CardFieldsForm value={value} onChange={setValue} />
+      <CardFieldsForm value={value} onChange={setValue} withUsage={withUsage} />
       <label className="mt-2 block">
         <span className="text-xs font-medium text-muted">Why (e.g. “teacher's meaning”)</span>
         <input value={reason} onChange={(e) => setReason(e.target.value)} className="mt-0.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3" />
       </label>
-      <p className="mt-2 text-xs text-muted">Saving creates a new version for everyone in the class. If the Arabic the voice says changed, new audio is made on the next play.</p>
+      <p className="mt-2 text-xs text-muted">Saving updates the card for everyone in the class (text changes become a new version). If the Arabic the voice says changed, new audio is made on the next play.</p>
       {error && <div className="mt-2"><ErrorNote error={error} /></div>}
       <div className="sticky -bottom-4 -mx-4 mt-3 bg-surface px-4 pb-1 pt-2">
-        <Button className="w-full" disabled={busy || Object.keys(changes).length === 0} onClick={save}>
+        <Button className="w-full" disabled={busy || incomplete || Object.keys(changes).length === 0} onClick={save}>
           {busy ? "Saving…" : "Save correction"}
         </Button>
       </div>
