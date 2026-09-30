@@ -12,5 +12,5 @@
     "erasableSyntaxOnly": true,
     "skipLibCheck": true
   },
-  "include": ["supabase/functions/_shared", "spikes", "scripts"]
+  "include": ["supabase/functions/_shared", "spikes", "scripts", "tests"]
 }
