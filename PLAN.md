@@ -70,14 +70,21 @@ The roadmap diagram in the PRD did not survive the markdown export, so this orde
 
 ### Phase 1 — Understand today's page → Gate 1
 
-- [ ] Supabase project, schema, RLS, invite-only auth, classes and memberships
-- [ ] Book Map (`read-contents`), lesson list, class position
-- [ ] Page Helper (`explain-page`) with confirm/correct step and photo deletion
-- [ ] Audio (`get-audio`), normal + slow
-- [ ] Today's Class home screen, "We covered up to here"
-- [ ] My Words
-- [ ] Needs checking + retake, Report a mistake, card versions, editor review queue
-- [ ] **Gate 1** on the real textbook (checklist in PRD)
+- [x] Supabase project, schema, RLS, invite-only access (invite codes), classes and memberships (`npm run test:db`: 47 checks)
+- [x] Book Map (`read-contents`, low effort: 64 s), lesson list, class position
+- [x] Page Helper (`explain-page` + `save-page`) with check/edit step; photo discarded after saving
+- [x] Audio (`get-audio`), normal + slow, cached per voice + model + text
+- [x] Today's Class home screen, "We covered up to here" (editors)
+- [x] My Words
+- [x] Needs checking + retake, Report a mistake
+- [ ] Card versions from corrections + editor review queue (reports are stored; no editor screen yet)
+- [ ] Own email sender (SMTP) so sign-in emails carry a 6-digit code and aren't limited to 2 per hour
+- [ ] Host the app on HTTPS so it installs on the phone and works outside the home Wi-Fi
+- [ ] **Gate 1** on the real textbook (checklist in PRD), in real class use
+
+Tools: `npm run smoke` (end-to-end against the live functions), `npm run ui:screens` (phone screenshots; fails if any screen is wider than the phone).
+
+Limits to watch: free-plan functions stop at 150 s. Lesson pages take 20–75 s; the dense introduction page took ~170 s and would fail, so dense pages may need lower effort or splitting.
 
 ### Phase 2 — Arrive prepared
 
