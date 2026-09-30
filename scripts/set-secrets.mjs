@@ -10,7 +10,9 @@ const secrets = {
   ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY,
   ELEVENLABS_VOICE_ID: process.env.ELEVENLABS_VOICE_ID || voiceIds[0],
   // Chosen after the audio spike; change here and run again to switch.
+  // Phrases use v3; letters, sounds and single words use v2 (v3 draws them out).
   ELEVENLABS_MODEL_ID: process.env.ELEVENLABS_MODEL_ID || "eleven_v3",
+  ELEVENLABS_SHORT_MODEL_ID: process.env.ELEVENLABS_SHORT_MODEL_ID || "eleven_multilingual_v2",
 };
 const missing = Object.entries(secrets).filter(([, v]) => !v).map(([k]) => k);
 if (!ref || !token || missing.length) {

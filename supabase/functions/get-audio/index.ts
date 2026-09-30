@@ -3,30 +3,33 @@
 // card is corrected (a new version has new text, so a new clip). Slow speed is
 // the same file played at a lower rate in the app.
 import * as z from "zod";
-import { audioHash, textToSpeech, voiceConfig } from "../_edge/elevenlabs.ts";
+import { audioHash, modelFor, textToSpeech, voiceConfig } from "../_edge/elevenlabs.ts";
 import { body, handle, json } from "../_edge/http.ts";
 
 const Body = z.object({ card_ids: z.array(z.uuid()).min(1).max(60) });
 const BUCKET = "audio";
 const URL_SECONDS = 60 * 60;
 
-type CardRow = { id: string; current_version: number; tts_text: string; audio_hash: string | null };
+type CardRow = { id: string; kind: string; current_version: number; tts_text: string; audio_hash: string | null };
 
 Deno.serve(handle(async (req, ctx) => {
   const { card_ids } = await body(req, (raw) => Body.parse(raw));
-  const { voiceId, modelId } = voiceConfig();
+  const config = voiceConfig();
+  const { voiceId } = config;
 
   // Row-level security decides which of these cards the student may hear.
   const { data: cards, error } = await ctx.userClient
     .from("current_cards")
-    .select("id, current_version, tts_text, audio_hash")
+    .select("id, kind, current_version, tts_text, audio_hash")
     .in("id", card_ids);
   if (error) throw error;
 
-  const wanted = new Map<string, { hash: string; text: string; cards: CardRow[] }>();
+  // Short items (letters, sounds, single words) and phrases use different models.
+  const wanted = new Map<string, { hash: string; text: string; model: string; cards: CardRow[] }>();
   for (const card of (cards ?? []) as CardRow[]) {
-    const hash = await audioHash(voiceId, modelId, card.tts_text);
-    const entry = wanted.get(hash) ?? { hash, text: card.tts_text, cards: [] };
+    const model = modelFor(config, card.kind, card.tts_text);
+    const hash = await audioHash(voiceId, model, card.tts_text);
+    const entry = wanted.get(hash) ?? { hash, text: card.tts_text, model, cards: [] };
     entry.cards.push(card);
     wanted.set(hash, entry);
   }
@@ -42,13 +45,13 @@ Deno.serve(handle(async (req, ctx) => {
   const missing = [...wanted.values()].filter((w) => !paths.has(w.hash));
   await pool(missing, 2, async (w) => {
     try {
-      const mp3 = await textToSpeech(voiceId, modelId, w.text);
+      const mp3 = await textToSpeech(voiceId, w.model, w.text);
       const path = `${w.hash}.mp3`;
       const up = await ctx.admin.storage.from(BUCKET).upload(path, mp3, { contentType: "audio/mpeg", upsert: true });
       if (up.error) throw up.error;
       const ins = await ctx.admin
         .from("audio_files")
-        .upsert({ hash: w.hash, storage_path: path, voice_id: voiceId, model_id: modelId, source: "tts" }, { onConflict: "hash" });
+        .upsert({ hash: w.hash, storage_path: path, voice_id: voiceId, model_id: w.model, source: "tts" }, { onConflict: "hash" });
       if (ins.error) throw ins.error;
       paths.set(w.hash, path);
     } catch (err) {

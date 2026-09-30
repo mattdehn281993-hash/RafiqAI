@@ -4,8 +4,21 @@ import { env } from "./http.ts";
 export function voiceConfig() {
   return {
     voiceId: env("ELEVENLABS_VOICE_ID"),
-    modelId: Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_v3",
+    /** Phrases and sentences: eleven_v3 sounds more natural there. */
+    phraseModel: Deno.env.get("ELEVENLABS_MODEL_ID") || "eleven_v3",
+    /**
+     * Letters, sounds and single words: v3 draws these out 3–4× (بَ 2.4 s vs
+     * 0.6 s, كِتَابْ 3.9 s vs 1.0 s, measured 2026-09-30), so they use v2.
+     */
+    shortModel: Deno.env.get("ELEVENLABS_SHORT_MODEL_ID") || "eleven_multilingual_v2",
   };
+}
+
+/** Which model voices a card: short items (a letter, a sound, one word) or a phrase. */
+export function modelFor(config: ReturnType<typeof voiceConfig>, kind: string, text: string): string {
+  const words = text.replace(/[،؟؛.,!?:;*]/g, " ").trim().split(/\s+/).filter(Boolean);
+  const short = kind === "letter" || kind === "syllable" || words.length <= 1;
+  return short ? config.shortModel : config.phraseModel;
 }
 
 /** Storage key for a clip: the same voice, model and text always share one file. */
