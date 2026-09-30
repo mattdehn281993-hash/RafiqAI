@@ -1,8 +1,7 @@
-// Sends students to their class; with no class yet, offers setup or joining.
-import { Link, Navigate } from "react-router";
+// Sends students to their class; with no class, to the class-free Learn home.
+import { Navigate } from "react-router";
 import { ErrorNote, RowLink, Screen, Spinner } from "../components/ui";
 import { myClasses } from "../lib/data";
-import { supabase } from "../lib/supabase";
 import { useAsync } from "../lib/useAsync";
 
 const LAST_CLASS = "rafiq:lastClass";
@@ -46,22 +45,6 @@ export function Home() {
     );
   }
 
-  return (
-    <Screen title="Welcome to Rafiq">
-      <p className="mt-2 text-muted">To start, join your classmates' class with an invite code, or set up your textbook if you're the first one here.</p>
-      <div className="mt-6 flex flex-col gap-3">
-        <Link to="/join" className="rounded-3xl bg-accent p-5 text-on-accent active:opacity-90">
-          <p className="text-lg font-bold">Join a class</p>
-          <p className="text-sm opacity-90">A classmate gave you an invite code</p>
-        </Link>
-        <Link to="/setup" className="rounded-3xl border border-border bg-surface p-5 active:bg-soft">
-          <p className="text-lg font-bold">Set up my textbook</p>
-          <p className="text-sm text-muted">Photograph the contents pages once; Rafiq builds your lesson list</p>
-        </Link>
-      </div>
-      <button className="mt-10 min-h-11 text-sm text-muted" onClick={() => supabase.auth.signOut()}>
-        Sign out
-      </button>
-    </Screen>
-  );
+  return <Navigate to="/learn" replace />;
 }
+

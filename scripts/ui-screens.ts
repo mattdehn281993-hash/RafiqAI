@@ -27,6 +27,45 @@ const userId = created.user.id;
 let bookId: string | undefined;
 
 const browser = await chromium.launch({ channel: "msedge", headless: true });
+
+// A brand-new account with no class lands on the class-free foundations.
+{
+  const freeEmail = `free-${Date.now()}@rafiq.test`;
+  const { data: free } = await admin.auth.admin.createUser({ email: freeEmail, password, email_confirm: true });
+  try {
+    const anon = createClient(URL, process.env.SUPABASE_PUBLISHABLE_KEY!, { auth: { persistSession: false } });
+    const { data: s } = await anon.auth.signInWithPassword({ email: freeEmail, password });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto(APP);
+    await page.evaluate(([key, session]) => localStorage.setItem(key, session), [`sb-${ref}-auth-token`, JSON.stringify(s.session)]);
+    await page.goto(APP);
+    await page.getByText("The alphabet").waitFor({ timeout: 30000 });
+    const landed = new globalThis.URL(page.url()).pathname;
+    await page.screenshot({ path: path.join(out, "00-learn-home-light.png") });
+    await page.getByText("The alphabet").click();
+    await page.getByRole("button", { name: /Letter baaʾ/ }).waitFor({ timeout: 30000 });
+    const letters = await page.getByRole("button", { name: /^Letter / }).count();
+    await page.screenshot({ path: path.join(out, "00-learn-letters-light.png") });
+    await page.getByRole("button", { name: /Letter baaʾ/ }).click();
+    await page.getByText("Long sounds").waitFor({ timeout: 30000 });
+    await page.getByRole("button", { name: "Close" }).click();
+    await page.getByRole("link", { name: "Conversation" }).click();
+    await page.getByText("First conversation").waitFor({ timeout: 30000 });
+    await page.getByRole("link", { name: "Practice" }).click();
+    await page.getByText("Hear & pick").waitFor({ timeout: 30000 });
+    const tabWidths = await page.locator("nav a").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().width));
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    const ok = landed === "/learn" && letters === 28 && tabWidths.length === 4 && Math.min(...tabWidths) > 60 && width <= 390 && errors.length === 0;
+    console.log(`${ok ? "✓" : "✗"} new account without a class: lands on ${landed}, ${letters} letters, sounds, conversation, practice${errors.length ? "; errors: " + errors.join(" | ") : ""}`);
+    await context.close();
+  } finally {
+    if (free?.user) await admin.auth.admin.deleteUser(free.user.id);
+  }
+}
+
 try {
   const classId = (await admin.rpc("create_class_from_book_map", { p_user: userId, p_class_name: "Evening Fusha class", p_map: map })).data as string;
   const cls = (await admin.from("classes").select("book_id, current_lesson_id").eq("id", classId).single()).data!;

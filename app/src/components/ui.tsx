@@ -91,6 +91,7 @@ export function Screen({
   subtitle,
   back,
   classId,
+  learn,
   action,
   children,
 }: {
@@ -98,11 +99,14 @@ export function Screen({
   subtitle?: ReactNode;
   back?: string | true;
   classId?: string;
+  /** Show the class-free foundations tab bar (when there's no classId). */
+  learn?: boolean;
   action?: ReactNode;
   children: ReactNode;
 }) {
   const navigate = useNavigate();
-  const bottomSpace = (classId ? 64 : 0) + (action ? 84 : 16);
+  const tabs = !!classId || !!learn;
+  const bottomSpace = (tabs ? 64 : 0) + (action ? 84 : 16);
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
       <header className="sticky top-0 z-20 flex items-center gap-2 bg-bg/95 px-4 pb-3 pt-[max(env(safe-area-inset-top),16px)] backdrop-blur">
@@ -130,10 +134,22 @@ export function Screen({
       {action && (
         <div
           className="fixed inset-x-0 z-20 mx-auto max-w-md px-4"
-          style={{ bottom: `calc(env(safe-area-inset-bottom) + ${classId ? 72 : 16}px)` }}
+          style={{ bottom: `calc(env(safe-area-inset-bottom) + ${tabs ? 72 : 16}px)` }}
         >
           {action}
         </div>
+      )}
+
+      {!classId && learn && (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md border-t border-border bg-surface/95 backdrop-blur"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <Tab to="/learn" label="Home" icon="today" end />
+          <Tab to="/learn/letters" label="Learn" icon="letters" alsoActiveOn="/learn/talk" />
+          <Tab to="/learn/practice" label="Practice" icon="practice" />
+          <Tab to="/learn/words" label="My Words" icon="words" />
+        </nav>
       )}
 
       {classId && (

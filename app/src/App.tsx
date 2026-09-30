@@ -24,6 +24,12 @@ export const router = createBrowserRouter([
     children: [
       { path: "/", element: <Home /> },
       { path: "/class/:classId", element: <Today /> },
+      { path: "/learn", lazy: () => import("./routes/LearnHome").then((m) => ({ Component: m.LearnHome })) },
+      { path: "/learn/letters", lazy: () => import("./routes/Alphabet").then((m) => ({ Component: m.Alphabet })) },
+      { path: "/learn/talk", lazy: () => import("./routes/Talk").then((m) => ({ Component: m.TalkList })) },
+      { path: "/learn/talk/:topicKey", lazy: () => import("./routes/Talk").then((m) => ({ Component: m.TalkTopic })) },
+      { path: "/learn/practice", lazy: () => import("./routes/PracticeHome").then((m) => ({ Component: m.PracticeHome })) },
+      { path: "/learn/words", lazy: () => import("./routes/Words").then((m) => ({ Component: m.Words })) },
       { path: "/join", lazy: () => import("./routes/Join").then((m) => ({ Component: m.Join })) },
       { path: "/setup", lazy: () => import("./routes/Setup").then((m) => ({ Component: m.Setup })) },
       { path: "/class/:classId/lessons", lazy: () => import("./routes/Lessons").then((m) => ({ Component: m.Lessons })) },

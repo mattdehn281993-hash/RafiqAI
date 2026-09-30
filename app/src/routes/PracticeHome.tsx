@@ -2,7 +2,8 @@
 // for every letter the class has reached, and flashcards for the current
 // lesson or My Words. Results feed spaced repetition.
 import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { LETTERS } from "@shared/sounds.ts";
+import { useBase } from "../lib/base";
 import { Flashcards, QuizRunner, ScoreSummary } from "../components/Practice";
 import { Button, ErrorNote, Screen, Spinner } from "../components/ui";
 import { prepareAudio } from "../lib/audio";
@@ -19,16 +20,17 @@ type Mode = { kind: "menu" } | { kind: "quiz"; title: string; questions: Questio
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5);
 
 export function PracticeHome() {
-  const { classId = "" } = useParams();
+  const { classId, base } = useBase();
   const { data, error, loading, reload } = useAsync(async () => {
-    const cls = await getClass(classId);
-    const { lessons } = await lessonsOf(cls.book_id);
-    const current = lessons.find((l) => l.id === cls.current_lesson_id);
+    // Inside a class: letters up to where the class is. Without one: all 28.
+    const cls = classId ? await getClass(classId) : null;
+    const lessons = cls ? (await lessonsOf(cls.book_id)).lessons : [];
+    const current = lessons.find((l) => l.id === cls?.current_lesson_id);
     const upTo = current?.position ?? 0;
 
     const [sets, currentSet, builtins, due, saved, progressed] = await Promise.all([
-      lettersSoFar(lessons, upTo),
-      letterSet(current?.focus),
+      cls ? lettersSoFar(lessons, upTo) : Promise.all(LETTERS.map((l) => letterSet(l.letter))).then((all) => all.filter((s): s is NonNullable<typeof s> => !!s)),
+      cls ? letterSet(current?.focus) : Promise.resolve(null),
       builtinCards(),
       dueCardIds(20),
       supabase.from("saved_words").select("card_id").order("saved_at", { ascending: false }).limit(40),
@@ -50,8 +52,8 @@ export function PracticeHome() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const byId = useMemo(() => new Map([...(data?.pool ?? []), ...(data?.review ?? [])].map((c) => [c.id, c])), [data]);
 
-  if (loading && !data) return <Screen title="Practice" classId={classId}><Spinner /></Screen>;
-  if (error || !data) return <Screen title="Practice" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
+  if (loading && !data) return <Screen title="Practice" classId={classId} learn><Spinner /></Screen>;
+  if (error || !data) return <Screen title="Practice" classId={classId} learn><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
   async function done(title: string, results: Result[]) {
     setMode({ kind: "done", title, results });
@@ -71,21 +73,21 @@ export function PracticeHome() {
 
   if (mode.kind === "quiz") {
     return (
-      <Screen title={mode.title} back={`/class/${classId}/practice`} classId={classId}>
+      <Screen title={mode.title} back={`${base}/practice`} classId={classId} learn>
         <QuizRunner questions={mode.questions} onDone={(r) => done(mode.title, r)} />
       </Screen>
     );
   }
   if (mode.kind === "cards") {
     return (
-      <Screen title={mode.title} back={`/class/${classId}/practice`} classId={classId}>
+      <Screen title={mode.title} back={`${base}/practice`} classId={classId} learn>
         <Flashcards cards={mode.cards} onDone={(r) => done(mode.title, r)} />
       </Screen>
     );
   }
   if (mode.kind === "done") {
     return (
-      <Screen title={mode.title} classId={classId}>
+      <Screen title={mode.title} classId={classId} learn>
         <ScoreSummary results={mode.results} cards={byId}>
           {saveError && <ErrorNote error={`Progress wasn't saved: ${saveError}`} />}
           <Button
@@ -112,7 +114,7 @@ export function PracticeHome() {
     },
     {
       title: "Hear & pick",
-      detail: `Sounds of the ${data.letters} letter${data.letters === 1 ? "" : "s"} your class has reached`,
+      detail: classId ? `Sounds of the ${data.letters} letter${data.letters === 1 ? "" : "s"} your class has reached` : "Hear a sound, pick the letter: all 28 letters",
       count: data.soundsSoFar.length,
       go: () => start({ kind: "quiz", title: "Hear & pick", questions: buildQuiz(shuffle(data.soundsSoFar).slice(0, 12), data.pool, 12) }),
     },
@@ -131,9 +133,9 @@ export function PracticeHome() {
   ];
 
   return (
-    <Screen title="Practice" subtitle="A few minutes a day" classId={classId}>
+    <Screen title="Practice" subtitle="A few minutes a day" classId={classId} learn>
       <ul className="flex flex-col gap-2">
-        {options.map((o) => (
+        {options.filter((o) => classId || o.title !== "This lesson").map((o) => (
           <li key={o.title}>
             <button
               disabled={o.count === 0}

@@ -2,6 +2,7 @@
 // you, name, where you're from, age) and a dialogue to listen to or role-play.
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
+import { useBase } from "../lib/base";
 import { TOPICS, topicPhraseKeys, type Topic } from "@shared/conversations.ts";
 import { ArabicText } from "../components/ArabicText";
 import { CardTile } from "../components/CardTile";
@@ -17,14 +18,14 @@ import { useAsync } from "../lib/useAsync";
 import { LearnSwitch } from "./Alphabet";
 
 export function TalkList() {
-  const { classId = "" } = useParams();
+  const { classId, base } = useBase();
   return (
-    <Screen title="Learn" subtitle="Everyday conversation for class" classId={classId}>
-      <LearnSwitch classId={classId} active="talk" />
+    <Screen title="Learn" subtitle="Everyday conversation for class" classId={classId} learn>
+      <LearnSwitch base={base} active="talk" />
       <ol className="mt-3 flex flex-col gap-2">
         {TOPICS.map((t, i) => (
           <li key={t.key}>
-            <Link to={`/class/${classId}/talk/${t.key}`} className="flex min-h-20 items-center gap-3 rounded-3xl bg-surface p-4 active:bg-soft">
+            <Link to={`${base}/talk/${t.key}`} className="flex min-h-20 items-center gap-3 rounded-3xl bg-surface p-4 active:bg-soft">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-accent-soft font-bold text-accent">{i + 1}</span>
               <span className="min-w-0 flex-1">
                 <span className="block font-bold">{t.title}</span>
@@ -47,7 +48,8 @@ export function TalkList() {
 type Mode = "learn" | "cards" | "quiz" | "done";
 
 export function TalkTopic() {
-  const { classId = "", topicKey = "" } = useParams();
+  const { topicKey = "" } = useParams();
+  const { classId, base } = useBase();
   const navigate = useNavigate();
   const topic = TOPICS.find((t) => t.key === topicKey);
   const { data, error, loading, reload } = useAsync(async () => {
@@ -67,9 +69,9 @@ export function TalkTopic() {
   }, [data]);
   const byId = useMemo(() => new Map((data?.conversation ?? []).map((c) => [c.id, c])), [data]);
 
-  if (!topic) return <Screen title="Conversation" back={`/class/${classId}/talk`}><ErrorNote error="Topic not found" /></Screen>;
-  if (loading && !data) return <Screen title={topic.title} back={`/class/${classId}/talk`} classId={classId}><Spinner /></Screen>;
-  if (error || !data) return <Screen title={topic.title} back={`/class/${classId}/talk`} classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
+  if (!topic) return <Screen title="Conversation" back={`${base}/talk`}><ErrorNote error="Topic not found" /></Screen>;
+  if (loading && !data) return <Screen title={topic.title} back={`${base}/talk`} classId={classId} learn><Spinner /></Screen>;
+  if (error || !data) return <Screen title={topic.title} back={`${base}/talk`} classId={classId} learn><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
   async function finish(r: Result[]) {
     setResults(r);
@@ -90,26 +92,26 @@ export function TalkTopic() {
 
   if (mode === "cards") {
     return (
-      <Screen title={topic.title} subtitle="Say it, then check" back={`/class/${classId}/talk`} classId={classId}>
+      <Screen title={topic.title} subtitle="Say it, then check" back={`${base}/talk`} classId={classId} learn>
         <Flashcards cards={data.cards} onDone={finish} />
       </Screen>
     );
   }
   if (mode === "quiz") {
     return (
-      <Screen title={topic.title} subtitle="Quiz" back={`/class/${classId}/talk`} classId={classId}>
+      <Screen title={topic.title} subtitle="Quiz" back={`${base}/talk`} classId={classId} learn>
         <QuizRunner questions={buildQuiz(data.cards, data.conversation, 12)} onDone={finish} />
       </Screen>
     );
   }
   if (mode === "done") {
     return (
-      <Screen title={topic.title} back={`/class/${classId}/talk`} classId={classId}>
+      <Screen title={topic.title} back={`${base}/talk`} classId={classId} learn>
         <ScoreSummary results={results} cards={byId}>
           <Button className="w-full" onClick={() => setMode("learn")}>
             Back to the phrases
           </Button>
-          <Button variant="secondary" className="w-full" onClick={() => navigate(`/class/${classId}/talk`)}>
+          <Button variant="secondary" className="w-full" onClick={() => navigate(`${base}/talk`)}>
             All topics
           </Button>
         </ScoreSummary>
@@ -121,8 +123,9 @@ export function TalkTopic() {
     <Screen
       title={topic.title}
       subtitle={topic.summary}
-      back={`/class/${classId}/talk`}
+      back={`${base}/talk`}
       classId={classId}
+      learn
       action={
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={() => setMode("cards")}>

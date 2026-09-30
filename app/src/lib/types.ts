@@ -35,6 +35,8 @@ export type PageRow = {
 export type Card = {
   id: string;
   book_id: string | null;
+  /** built-in course level (1 sounds, 4 conversation); null for book cards */
+  level?: number | null;
   kind: string;
   current_version: number;
   arabic_printed: string;

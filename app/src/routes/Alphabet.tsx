@@ -1,18 +1,22 @@
-// Letters: all 28 letters in the book's order, available from day one. Tap a
-// letter to hear its name and sounds. Letters the class has reached are marked.
+// Letters: all 28 letters in the book's order, available from day one, with or
+// without a class. Tap a letter to hear its name and sounds. Inside a class,
+// today's letter and the letters the class has reached are marked.
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link } from "react-router";
 import { LETTERS, letterKeyForFocus } from "@shared/sounds.ts";
 import { Sheet } from "../components/CardEditor";
 import { LetterSounds } from "../components/LetterSounds";
 import { ErrorNote, Screen, Spinner } from "../components/ui";
 import { letterSet, type LetterSet } from "../lib/builtin";
+import { useBase } from "../lib/base";
 import { getClass, lessonsOf } from "../lib/data";
+import type { Lesson } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
 
 export function Alphabet() {
-  const { classId = "" } = useParams();
+  const { classId, base } = useBase();
   const { data, error, loading, reload } = useAsync(async () => {
+    if (!classId) return { reached: new Set<string | undefined>(), todayKey: undefined as string | undefined, lessonOf: new Map<string | undefined, Lesson>() };
     const cls = await getClass(classId);
     const { lessons } = await lessonsOf(cls.book_id);
     const current = lessons.find((l) => l.id === cls.current_lesson_id);
@@ -36,15 +40,15 @@ export function Alphabet() {
     }
   }
 
-  if (loading && !data) return <Screen title="Learn" classId={classId}><Spinner /></Screen>;
-  if (error || !data) return <Screen title="Learn" classId={classId}><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
+  if (loading && !data) return <Screen title="Learn" classId={classId} learn><Spinner /></Screen>;
+  if (error || !data) return <Screen title="Learn" classId={classId} learn><ErrorNote error={error ?? "Not found"} onRetry={reload} /></Screen>;
 
   const openLetterInfo = open ? LETTERS.find((l) => l.key === open.key) : null;
   const openLesson = open ? data.lessonOf.get(open.key) : null;
 
   return (
-    <Screen title="Learn" subtitle="The 28 letters in your book's order · tap to hear" classId={classId}>
-      <LearnSwitch classId={classId} active="letters" />
+    <Screen title="Learn" subtitle="The 28 Arabic letters · tap one to hear it" classId={classId} learn>
+      <LearnSwitch base={base} active="letters" />
       <ol className="mt-3 grid grid-cols-4 gap-2" dir="rtl">
         {LETTERS.map((l, i) => {
           const isToday = l.key === data.todayKey;
@@ -72,10 +76,12 @@ export function Alphabet() {
           );
         })}
       </ol>
+      {classId && (
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span><span className="mr-1 inline-block size-3 rounded bg-accent align-middle" />Today</span>
         <span><span className="mr-1 inline-block size-3 rounded border-2 border-accent bg-accent-soft align-middle" />Your class has reached it</span>
       </p>
+      )}
 
       {open && (
         <Sheet title={openLetterInfo ? `The letter ${openLetterInfo.namePron}` : "Letter"} onClose={() => setOpen(null)}>
@@ -95,7 +101,7 @@ export function Alphabet() {
 }
 
 /** Segmented switch between the two built-in sections. */
-export function LearnSwitch({ classId, active }: { classId: string; active: "letters" | "talk" }) {
+export function LearnSwitch({ base, active }: { base: string; active: "letters" | "talk" }) {
   const item = (key: "letters" | "talk", label: string, to: string) => (
     <Link
       to={to}
@@ -108,8 +114,8 @@ export function LearnSwitch({ classId, active }: { classId: string; active: "let
   );
   return (
     <div className="flex gap-1 rounded-2xl bg-soft p-1">
-      {item("letters", "Letters", `/class/${classId}/letters`)}
-      {item("talk", "Conversation", `/class/${classId}/talk`)}
+      {item("letters", "Letters", `${base}/letters`)}
+      {item("talk", "Conversation", `${base}/talk`)}
     </div>
   );
 }
